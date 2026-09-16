@@ -32,6 +32,18 @@ try{
   await run('document.fonts.ready');
   const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile('artifacts/desktop.png',Buffer.from(shot.data,'base64'));
   assert.equal(await run('document.documentElement.scrollWidth<=innerWidth'),true,'desktop no overflow');
+  await run("document.querySelector('[name=income]').value=30000;document.querySelector('[name=takeHome]').value=2000;document.querySelector('#finance-form').requestSubmit();document.querySelector('[name=purchaseHistory]').value='first';document.querySelector('[name=purchaseHistory]').dispatchEvent(new Event('change'))");
+  assert.ok(await run("document.querySelector('#budget-summary').textContent.includes('LTV 70%')"),'first-home selection updates immediately');
+  await run("document.querySelector('[data-detail=sejong]').click()");
+  assert.ok(await run("document.querySelector('#detail-result').textContent.includes('일반 → 생애최초 비교')"),'comparison visible');
+  assert.equal(await run("document.querySelectorAll('#detail-result meter').length"),3,'three loan limits');
+  await run("document.querySelector('#close-modal').click();document.querySelector('[name=homeStatus]').value='keep';document.querySelector('[name=homeStatus]').dispatchEvent(new Event('change'))");
+  assert.ok(await run("document.querySelector('#history-error').textContent.includes('모순')"),'contradiction shown immediately');
+  assert.ok(await run("document.querySelector('#budget-summary').textContent.includes('별도 심사')"),'stale budget suppressed');
+  await run("document.querySelector('[name=homeStatus]').value='none';document.querySelector('[name=homeStatus]').dispatchEvent(new Event('change'));document.querySelector('[name=purchaseHistory]').value='unknown';document.querySelector('[name=purchaseHistory]').dispatchEvent(new Event('change'))");
+  assert.ok(await run("document.querySelector('#budget-summary').textContent.includes('생애최초 여부를 확인')"),'unknown eligibility kept unknown');
+  await run("document.querySelector('#finance-form').reset()");await delay(100);
+  assert.equal(await run("document.querySelector('#history-error').textContent"),'','reset clears validation');
   await run("document.querySelector('[data-region=서울]').click()");assert.equal(await run("document.querySelectorAll('.apartment-card').length"),3);
   await run("document.querySelector('[data-region=all]').click();document.querySelector('#search').value='산본';document.querySelector('#search').dispatchEvent(new Event('input'))");assert.equal(await run("document.querySelectorAll('.apartment-card').length"),1);
   await run("document.querySelector('#search').value='';document.querySelector('#search').dispatchEvent(new Event('input'));document.querySelector('[data-area=\"59\"]').click()");

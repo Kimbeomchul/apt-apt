@@ -24,13 +24,17 @@
     <div class="workspace">
       <aside class="finance-panel" aria-labelledby="finance-title">
         <div class="panel-heading"><span class="section-number">01</span><h2 id="finance-title">나의 구매 여력</h2><span class="mini-tag">예산 계산</span></div>
-        <p class="muted intro">내 조건을 입력하면 단지마다 계산해요.</p>
+        <p class="muted intro">세 가지 순서로 입력하면 단지마다 같은 기준으로 계산해요.</p>
+        <ol class="input-steps" aria-label="예산 계산 단계"><li class="current"><b>1</b><span>기본 조건</span></li><li><b>2</b><span>부채·보증금</span></li><li><b>3</b><span>상세 가정</span></li></ol>
         <form id="finance-form">
-          <label class="field">세전 연봉 <span class="input-wrap"><input name="income" type="number" min="0" max="1000000" step="100" value="7000" required inputmode="decimal"><span>만원 / 년</span></span></label>
-          <label class="field">바로 쓸 수 있는 모은 돈 <span class="input-wrap"><input name="cash" type="number" min="0" max="10000000" step="100" value="30000" required inputmode="decimal"><span>만원</span></span></label>
+          <p class="form-group-label">먼저, 지금 바로 아는 금액만 입력하세요.</p>
+          <label class="field">세전 연봉 <span class="input-wrap"><input name="income" type="number" min="0" max="1000000" step="100" value="7000" required inputmode="decimal" aria-describedby="income-help"><span>만원 / 년</span></span><small id="income-help" class="field-help">세금 공제 전 연간 소득이에요.</small></label>
+          <label class="field">바로 쓸 수 있는 모은 돈 <span class="input-wrap"><input name="cash" type="number" min="0" max="10000000" step="100" value="30000" required inputmode="decimal" aria-describedby="cash-help"><span>만원</span></span><small id="cash-help" class="field-help">잔금일까지 사용할 수 있는 현금만 입력하세요.</small></label>
           <div class="two-fields"><label class="field">월 실수령액<span class="input-wrap"><input name="takeHome" type="number" min="0" max="100000" value="480" required><span>만원</span></span></label><label class="field">월 생활·주거비<span class="input-wrap"><input name="living" type="number" min="0" max="100000" value="200" required><span>만원</span></span></label></div>
-          <label class="field">현재 주택 보유<select name="homeStatus"><option value="none">무주택 · 일반 주담대</option><option value="sell">1주택 · 처분 예정 (상담 필요)</option><option value="keep">1주택 유지 / 다주택 (별도 심사)</option><option value="first">생애최초 / 정책대출 (별도 심사)</option></select></label>
-          <details class="form-details"><summary>기존 대출 · 보증금 입력 <span>＋</span></summary>
+          <label class="field">현재 세대의 주택 보유<select name="homeStatus" aria-describedby="home-status-help"><option value="none">현재 무주택</option><option value="sell">1주택 · 처분 예정</option><option value="keep">1주택 유지 / 다주택</option></select><small id="home-status-help" class="field-help">본인뿐 아니라 세대 구성원의 주택 보유도 확인해주세요.</small></label>
+          <label class="field">세대의 과거 주택 보유 이력<select name="purchaseHistory" aria-describedby="purchase-history-help history-error"><option value="previous">과거 주택 보유 · 일반 시나리오</option><option value="first">생애최초 · 세대원 모두 보유 이력 없음</option><option value="unknown">판단 어려움</option></select><small id="purchase-history-help" class="field-help">생애최초 은행 주담대를 비교합니다. 디딤돌·보금자리론 자격은 별도예요. 생애최초도 은행권 DSR 40%를 적용하며 자동 완화되지 않아요.</small></label>
+          <p id="history-error" class="error" role="alert"></p>
+          <details class="form-details"><summary><span class="summary-label"><b>02</b> 기존 대출 · 보증금 입력</span><span aria-hidden="true">＋</span></summary>
             <label class="field">기존 대출 잔액<span class="input-wrap"><input name="debtBalance" type="number" min="0" max="10000000" value="0"><span>만원</span></span></label>
             <label class="field">기존 대출의 규정상 연 원리금<span class="input-wrap"><input name="debtAnnual" type="number" min="0" max="10000000" value="0"><span>만원 / 년</span></span></label><p class="field-help">은행 DSR 조회값을 입력하세요. 잔액이 있으면 이 값이 필요합니다. 실제 납입액과 다를 수 있어요.</p>
             <label class="field">기존 대출 실제 월 납입액<span class="input-wrap"><input name="debtMonthly" type="number" min="0" max="100000" value="0"><span>만원 / 월</span></span></label>
@@ -38,14 +42,14 @@
             <label class="checkbox"><input type="checkbox" name="depositReady">잔금 전에 보증금 반환이 확정돼 있어요</label>
             <label class="checkbox"><input type="checkbox" name="creditRestriction">1년 이내 실행한 1억원 초과 신용대출이 있어요</label>
           </details>
-          <details class="form-details"><summary>금리 · 비상금 · 부대비용 <span>＋</span></summary>
+          <details class="form-details"><summary><span class="summary-label"><b>03</b> 금리 · 비상금 · 부대비용</span><span aria-hidden="true">＋</span></summary>
             <div class="two-fields"><label class="field">약정금리 가정<span class="input-wrap"><input name="rate" type="number" min="0" max="25" step="0.1" value="4.5" required><span>%</span></span></label><label class="field">대출 기간<select name="years"><option value="30">30년</option><option value="20">20년</option><option value="15">15년</option><option value="10">10년</option></select></label></div>
             <label class="field">스트레스 가산금리 가정<span class="input-wrap"><input name="stress" type="number" min="0" max="10" step="0.1" value="3" required><span>%p</span></span></label><p class="field-help">변동형을 가정합니다. 고정·혼합형과 은행별 조건은 다릅니다.</p>
             <label class="field">유지할 비상금<span class="input-wrap"><input name="reserve" type="number" min="0" max="10000000" value="3000" required><span>만원</span></span></label>
             <label class="field">취득·중개 등 부대비용 예산<span class="input-wrap"><input name="costRate" type="number" min="0" max="20" step="0.1" value="4" required><span>집값의 %</span></span></label><p class="field-help">4%는 세율이 아닌 여유 예산입니다. 실제 세금·수리비에 맞춰 수정하세요.</p>
             <label class="field">이사·수리 추가 예산<span class="input-wrap"><input name="fixedCosts" type="number" min="0" max="1000000" value="1000" required><span>만원</span></span></label>
           </details>
-          <p id="form-error" class="error" role="alert"></p>
+          <p id="form-error" class="error" role="alert" tabindex="-1"></p>
           <button class="primary calculate" type="submit">내 조건으로 계산하기 <span>↗</span></button>
           <p class="privacy">◈ 입력한 금융정보는 서버로 전송하지 않아요.</p>
           <button class="reset-button" type="reset">입력 초기화</button>
@@ -59,7 +63,7 @@
           <div class="filter-row"><div class="segmented" aria-label="지역 선택"><button class="selected" data-region="all" aria-pressed="true">전체</button><button data-region="서울" aria-pressed="false">서울</button><button data-region="경기" aria-pressed="false">경기</button></div><div class="segmented" aria-label="평형 선택"><button data-area="59" aria-pressed="false">59㎡ · 24평급</button><button class="selected" data-area="84" aria-pressed="true">84㎡ · 국평</button></div></div>
           <div class="filter-row secondary"><label class="checkbox"><input type="checkbox" id="affordable">예산 안의 단지만</label><label class="checkbox"><input type="checkbox" id="favorites-only">관심 단지만</label><label class="sort-label">정렬<select id="sort"><option value="price">가격 낮은 순</option><option value="price-desc">가격 높은 순</option><option value="households">세대수 많은 순</option><option value="newest">준공연도 최신 순</option></select></label></div>
         </div>
-        <div class="results-info"><span id="result-count" aria-live="polite">자료를 불러오는 중…</span><button class="text-button" data-action="sources">가격·데이터 안내 ⓘ</button></div>
+        <div class="results-info"><span id="result-count" aria-live="polite">자료를 불러오는 중…</span><span id="filter-summary" class="filter-summary" aria-live="polite"></span><button class="text-button" data-action="sources">가격·데이터 안내 ⓘ</button></div>
         <div id="apartments" class="apartment-grid"><div class="empty-state">단지 자료를 불러오고 있습니다.</div></div>
         <div class="data-note"><span>ⓘ</span><p>초기 조사 단지를 제공하는 베타 서비스입니다. 참고가격은 확인한 개별 거래 또는 공개 집계값이며 현재 매물 호가와 다릅니다. 미확인 평형은 가격을 추정하지 않습니다.</p></div>
       </section>
