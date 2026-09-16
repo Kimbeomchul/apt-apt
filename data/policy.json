@@ -1,0 +1,29 @@
+{
+  "version": "2026-09-16-research-v1",
+  "checkedAt": "2026-09-16",
+  "status": "scenario",
+  "title": "일반 무주택자 은행 주담대 참고 시나리오",
+  "dsr": 40,
+  "regulatedLtv": 40,
+  "nonRegulatedLtv": 70,
+  "stressDefault": 3,
+  "termMax": 30,
+  "notice": "전체 현행 규정·경과규정 검증 전입니다. 변동금리·원리금균등·무주택 일반 주담대의 참고 시뮬레이션이며 은행 승인 한도가 아닙니다.",
+  "sources": [
+    {
+      "title": "2025-10-15 주택가격별 상한·스트레스 DSR",
+      "url": "https://www.fsc.go.kr/po010102/85432",
+      "date": "2025-10-15"
+    },
+    {
+      "title": "2026년도 가계부채 관리방안",
+      "url": "https://www.fsc.go.kr/no010101/86606",
+      "date": "2026-04-01"
+    },
+    {
+      "title": "동탄구·기흥구·구리시 규제지역 추가 지정",
+      "url": "https://www.fsc.go.kr/po010101/87222",
+      "date": "2026-06-30"
+    }
+  ]
+}

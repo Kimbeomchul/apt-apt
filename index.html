@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#173e35">
+  <meta name="description" content="서울·경기 400세대 이상 아파트의 참고가격과 출처를 확인하고, 나의 자산과 소득으로 구매 예산을 비교하세요.">
+  <title>집의 기준 — 나에게 맞는 집의 발견</title>
+  <link rel="icon" href="./assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./src/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#explore">아파트 목록으로 바로가기</a>
+  <header class="header">
+    <a class="brand" href="./"><img src="./assets/logo.svg" width="34" height="34" alt=""><span>집의 기준<small>YOUR NEXT CHAPTER</small></span></a>
+    <nav aria-label="주 메뉴"><a href="#explore" class="active">아파트 탐색</a><button type="button" data-action="method">평가 기준</button><button type="button" data-action="policy">대출 정책</button></nav>
+    <button class="compare-top" type="button" data-action="comparison">비교함 <span id="compare-count">0</span></button>
+  </header>
+  <main class="shell">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy"><span class="eyebrow"><i></i> SEOUL & GYEONGGI · APARTMENT GUIDE</span><h1 id="hero-title">좋은 집의 기준에,<br><em>나의 가능성을 더하다.</em></h1><p>어디가 좋은지에서, 어디까지 가능한지까지.<br>아파트의 가격과 내 자금 계획을 함께 살펴보세요.</p><div class="hero-tags"><span>400세대 이상</span><span>59㎡ · 84㎡</span><span>출처가 있는 참고가격</span></div></div>
+      <div class="city" aria-hidden="true"><div class="sun"></div><div class="orbit"></div><div class="tower t1"></div><div class="tower t2"></div><div class="tower t3"></div><div class="tower t4"></div><div class="city-ground"></div><div class="tree tr1"></div><div class="tree tr2"></div><div class="city-caption">A PLACE TO CALL YOURS.</div></div>
+    </section>
+    <div class="workspace">
+      <aside class="finance-panel" aria-labelledby="finance-title">
+        <div class="panel-heading"><span class="section-number">01</span><h2 id="finance-title">나의 구매 여력</h2><span class="mini-tag">예산 계산</span></div>
+        <p class="muted intro">내 조건을 입력하면 단지마다 계산해요.</p>
+        <form id="finance-form">
+          <label class="field">세전 연봉 <span class="input-wrap"><input name="income" type="number" min="0" max="1000000" step="100" value="7000" required inputmode="decimal"><span>만원 / 년</span></span></label>
+          <label class="field">바로 쓸 수 있는 모은 돈 <span class="input-wrap"><input name="cash" type="number" min="0" max="10000000" step="100" value="30000" required inputmode="decimal"><span>만원</span></span></label>
+          <div class="two-fields"><label class="field">월 실수령액<span class="input-wrap"><input name="takeHome" type="number" min="0" max="100000" value="480" required><span>만원</span></span></label><label class="field">월 생활·주거비<span class="input-wrap"><input name="living" type="number" min="0" max="100000" value="200" required><span>만원</span></span></label></div>
+          <label class="field">현재 주택 보유<select name="homeStatus"><option value="none">무주택 · 일반 주담대</option><option value="sell">1주택 · 처분 예정 (상담 필요)</option><option value="keep">1주택 유지 / 다주택 (별도 심사)</option><option value="first">생애최초 / 정책대출 (별도 심사)</option></select></label>
+          <details class="form-details"><summary>기존 대출 · 보증금 입력 <span>＋</span></summary>
+            <label class="field">기존 대출 잔액<span class="input-wrap"><input name="debtBalance" type="number" min="0" max="10000000" value="0"><span>만원</span></span></label>
+            <label class="field">기존 대출의 규정상 연 원리금<span class="input-wrap"><input name="debtAnnual" type="number" min="0" max="10000000" value="0"><span>만원 / 년</span></span></label><p class="field-help">은행 DSR 조회값을 입력하세요. 잔액이 있으면 이 값이 필요합니다. 실제 납입액과 다를 수 있어요.</p>
+            <label class="field">기존 대출 실제 월 납입액<span class="input-wrap"><input name="debtMonthly" type="number" min="0" max="100000" value="0"><span>만원 / 월</span></span></label>
+            <label class="field">반환받을 보증금 순액<span class="input-wrap"><input name="deposit" type="number" min="0" max="10000000" value="0"><span>만원</span></span></label><p class="field-help">전세대출 상환 후 남는 돈. 위 ‘모은 돈’과 중복 입력하지 마세요.</p>
+            <label class="checkbox"><input type="checkbox" name="depositReady">잔금 전에 보증금 반환이 확정돼 있어요</label>
+            <label class="checkbox"><input type="checkbox" name="creditRestriction">1년 이내 실행한 1억원 초과 신용대출이 있어요</label>
+          </details>
+          <details class="form-details"><summary>금리 · 비상금 · 부대비용 <span>＋</span></summary>
+            <div class="two-fields"><label class="field">약정금리 가정<span class="input-wrap"><input name="rate" type="number" min="0" max="25" step="0.1" value="4.5" required><span>%</span></span></label><label class="field">대출 기간<select name="years"><option value="30">30년</option><option value="20">20년</option><option value="15">15년</option><option value="10">10년</option></select></label></div>
+            <label class="field">스트레스 가산금리 가정<span class="input-wrap"><input name="stress" type="number" min="0" max="10" step="0.1" value="3" required><span>%p</span></span></label><p class="field-help">변동형을 가정합니다. 고정·혼합형과 은행별 조건은 다릅니다.</p>
+            <label class="field">유지할 비상금<span class="input-wrap"><input name="reserve" type="number" min="0" max="10000000" value="3000" required><span>만원</span></span></label>
+            <label class="field">취득·중개 등 부대비용 예산<span class="input-wrap"><input name="costRate" type="number" min="0" max="20" step="0.1" value="4" required><span>집값의 %</span></span></label><p class="field-help">4%는 세율이 아닌 여유 예산입니다. 실제 세금·수리비에 맞춰 수정하세요.</p>
+            <label class="field">이사·수리 추가 예산<span class="input-wrap"><input name="fixedCosts" type="number" min="0" max="1000000" value="1000" required><span>만원</span></span></label>
+          </details>
+          <p id="form-error" class="error" role="alert"></p>
+          <button class="primary calculate" type="submit">내 조건으로 계산하기 <span>↗</span></button>
+          <p class="privacy">◈ 입력한 금융정보는 서버로 전송하지 않아요.</p>
+          <button class="reset-button" type="reset">입력 초기화</button>
+        </form>
+      </aside>
+      <section class="main-content" id="explore" aria-labelledby="explore-title">
+        <div class="budget-summary" id="budget-summary" aria-live="polite"></div>
+        <div class="section-heading"><div><span class="eyebrow dark">FIND YOUR PLACE</span><h2 id="explore-title">나에게 맞는 아파트</h2></div><span class="outline-tag">400세대 이상만</span></div>
+        <div class="filters">
+          <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="아파트명, 지역으로 찾아보세요" aria-label="아파트명 또는 지역 검색"></label>
+          <div class="filter-row"><div class="segmented" aria-label="지역 선택"><button class="selected" data-region="all" aria-pressed="true">전체</button><button data-region="서울" aria-pressed="false">서울</button><button data-region="경기" aria-pressed="false">경기</button></div><div class="segmented" aria-label="평형 선택"><button data-area="59" aria-pressed="false">59㎡ · 24평급</button><button class="selected" data-area="84" aria-pressed="true">84㎡ · 국평</button></div></div>
+          <div class="filter-row secondary"><label class="checkbox"><input type="checkbox" id="affordable">예산 안의 단지만</label><label class="checkbox"><input type="checkbox" id="favorites-only">관심 단지만</label><label class="sort-label">정렬<select id="sort"><option value="price">가격 낮은 순</option><option value="price-desc">가격 높은 순</option><option value="households">세대수 많은 순</option><option value="newest">준공연도 최신 순</option></select></label></div>
+        </div>
+        <div class="results-info"><span id="result-count" aria-live="polite">자료를 불러오는 중…</span><button class="text-button" data-action="sources">가격·데이터 안내 ⓘ</button></div>
+        <div id="apartments" class="apartment-grid"><div class="empty-state">단지 자료를 불러오고 있습니다.</div></div>
+        <div class="data-note"><span>ⓘ</span><p>초기 조사 단지를 제공하는 베타 서비스입니다. 참고가격은 확인한 개별 거래 또는 공개 집계값이며 현재 매물 호가와 다릅니다. 미확인 평형은 가격을 추정하지 않습니다.</p></div>
+      </section>
+    </div>
+    <section class="bottom-note"><div><span class="eyebrow dark">A BETTER DECISION</span><h2>숫자 다음에는,<br>나의 생활을 살펴보세요.</h2></div><p>출퇴근 시간, 아이의 통학길, 저녁의 주차 공간.<br>가격으로 다 말할 수 없는 기준은<br>단지 상세의 확인 목록에 담았습니다.</p><button class="outline-button" data-action="method">집의 기준 알아보기 ↗</button></section>
+  </main>
+  <footer><a class="brand" href="./">집의 기준</a><p>서울·경기 아파트 구매 계획 도우미 · BETA<br>가격과 대출은 참고용 추정치이며 금융기관 심사 결과가 아닙니다.</p><button class="text-button" data-action="privacy">개인정보 안내</button></footer>
+  <dialog id="modal" aria-labelledby="modal-title"><div class="modal-head"><div id="modal-kicker" class="eyebrow dark"></div><button id="close-modal" class="icon-button" aria-label="닫기">×</button></div><div id="modal-body"></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <noscript><p>이 사이트의 검색과 계산에는 JavaScript가 필요합니다.</p></noscript>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
