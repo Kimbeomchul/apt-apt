@@ -2,6 +2,8 @@
 
 서울·경기 400세대 이상 아파트의 참고가격과 개인별 구매 예산을 비교하는 정적 웹사이트입니다.
 
+**[공개 사이트](https://kimbeomchul.github.io/apt-apt/)** · [GitHub 저장소](https://github.com/Kimbeomchul/apt-apt)
+
 ## 실행
 
 Node.js 22 이상에서 별도 패키지 설치 없이 실행합니다.

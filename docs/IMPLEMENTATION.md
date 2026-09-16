@@ -30,4 +30,10 @@
 
 ## 배포 의존성
 
-실제 GitHub 대상 계정/저장소와 접근 권한이 아직 연결되지 않았으므로 공개 배포 URL은 없음. 로컬 미리보기는 `npm run dev`로 실행. 대량 데이터 확장에는 공식 마스터·API 키 또는 출처가 검증된 CSV가 필요.
+GitHub 저장소: https://github.com/Kimbeomchul/apt-apt
+
+공개 사이트: https://kimbeomchul.github.io/apt-apt/
+
+2026-09-16 GitHub Actions의 Linux 환경에서도 26개 테스트·빌드·Pages 배포 성공 확인. 실제 공개 주소를 대상으로 Chrome에서 검색·상세 계산·비교·관심·예산 필터·모바일 화면 검사를 다시 통과함.
+
+로컬 미리보기는 `npm run dev`로 실행. 대량 데이터 확장에는 공식 마스터·API 키 또는 출처가 검증된 CSV가 필요.

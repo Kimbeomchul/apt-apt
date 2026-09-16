@@ -3,6 +3,7 @@ import {mkdir,readFile,writeFile,stat} from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const root=process.cwd();
+const siteUrl=process.argv[2]||'http://127.0.0.1:4173/';
 const profile=path.join(root,'.cache','browser-'+Date.now());
 await mkdir(profile,{recursive:true});await mkdir('artifacts',{recursive:true});
 const executable=process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe';
@@ -26,7 +27,7 @@ try{
   const run=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.text);return r.result.value;};
   await send('Runtime.enable');await send('Page.enable');
   await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
-  await send('Page.navigate',{url:'http://127.0.0.1:4173/'});
+  await send('Page.navigate',{url:siteUrl});
   let ready=false;for(let i=0;i<100;i++){if(await run("document.querySelectorAll('.apartment-card').length===7")){ready=true;break;}await delay(100);}assert.ok(ready,'7 cards loaded');
   await run('document.fonts.ready');
   const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile('artifacts/desktop.png',Buffer.from(shot.data,'base64'));
@@ -46,9 +47,9 @@ try{
   const mobile=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile('artifacts/mobile.png',Buffer.from(mobile.data,'base64'));
   await run("document.querySelector('[data-detail=matan]').click()");assert.equal(await run("document.querySelector('dialog').scrollWidth<=document.querySelector('dialog').clientWidth"),true,'mobile dialog no overflow');
   await run("document.querySelector('#close-modal').click()");
-  await send('Page.navigate',{url:'http://127.0.0.1:4173/dist/'});await delay(500);
+  await send('Page.navigate',{url:process.argv[2]?siteUrl:'http://127.0.0.1:4173/dist/'});await delay(1500);
   assert.equal(await run("document.querySelectorAll('.apartment-card').length"),7,'build works at project subpath');
   assert.deepEqual(errors,[],'no browser exceptions');
-  console.log('Browser checks passed: 7 cards, region/search/area, detail calculator, comparison, favorites, budget filters, responsive layouts, dist subpath.');
+  console.log('Browser checks passed: 7 cards, region/search/area, detail calculator, comparison, favorites, budget filters, responsive layouts, project path. URL: '+siteUrl);
   await send('Browser.close').catch(()=>{});
 }finally{if(ws)ws.close();child.kill();}
