@@ -1,0 +1,76 @@
+{
+  "raw_rows": 307834,
+  "regional_apartment_rows": 18019,
+  "under_400": 13159,
+  "as_of": "2026-09-16",
+  "official_complexes": 4860,
+  "by_region": {
+    "서울": 1339,
+    "경기": 3521
+  },
+  "age_known": 4860,
+  "facilities_complexes": 3,
+  "facility_facts": 23,
+  "trades": {
+    "ambiguous_identity": 535,
+    "cancellation_conflict": 735,
+    "cancelled": 25389,
+    "construction_year_conflict": 605,
+    "direct_trade": 18750,
+    "duplicate_candidate": 1528,
+    "unmatched_identity": 118075,
+    "valid": 282217
+  },
+  "trades_total": 447834,
+  "complexes_with_59_84_trades": 3286,
+  "monthly_exact_area_points": 150498,
+  "database_path": "D:\\apt-research-work\\apartments.sqlite",
+  "raw_directory": "D:\\apt-research-work\\molit",
+  "master_sha256": "87272863d9c2edcd69d1a5319eb5755c288f13e8d0525dafb92c10a54c3cb00d",
+  "trade_sources": [
+    {
+      "source": "https://rt.molit.go.kr/pt/xls/xls.do?mobileAt=",
+      "method": "public_csv_form",
+      "region": "서울특별시",
+      "from": "2024-09-17",
+      "to": "2025-09-16",
+      "retrieved_at": "2026-09-16T08:21:50.360Z",
+      "sha256": "848036294a802dd257884e22d3160c1dac667e558259243b52166aaf1dc2fd9b",
+      "bytes": 14094671,
+      "path": "D:\\apt-research-work\\molit\\11-2024-09-17-2025-09-16.csv"
+    },
+    {
+      "source": "https://rt.molit.go.kr/pt/xls/xls.do?mobileAt=",
+      "method": "public_csv_form",
+      "region": "서울특별시",
+      "from": "2025-09-17",
+      "to": "2026-09-16",
+      "retrieved_at": "2026-09-16T08:21:07.414Z",
+      "sha256": "8576dd67569763f98997f6fdd19cbc49d7bdd637d2489261bef65c8e7007b9d8",
+      "bytes": 14072556,
+      "path": "D:\\apt-research-work\\molit\\11-2025-09-17-2026-09-16.csv"
+    },
+    {
+      "source": "https://rt.molit.go.kr/pt/xls/xls.do?mobileAt=",
+      "method": "public_csv_form",
+      "region": "경기도",
+      "from": "2024-09-17",
+      "to": "2025-09-16",
+      "retrieved_at": "2026-09-16T08:22:02.153Z",
+      "sha256": "defccdce26a999e36db3d143dcf9c42bc506c891a3e1e5f72d884ffb3bf6c7b7",
+      "bytes": 26170878,
+      "path": "D:\\apt-research-work\\molit\\41-2024-09-17-2025-09-16.csv"
+    },
+    {
+      "source": "https://rt.molit.go.kr/pt/xls/xls.do?mobileAt=",
+      "method": "public_csv_form",
+      "region": "경기도",
+      "from": "2025-09-17",
+      "to": "2026-09-16",
+      "retrieved_at": "2026-09-16T08:21:22.256Z",
+      "sha256": "6aafe58b77209c54ec604eb880c263b41600cf8256d54c0ca4247118853dafab",
+      "bytes": 33957479,
+      "path": "D:\\apt-research-work\\molit\\41-2025-09-17-2026-09-16.csv"
+    }
+  ]
+}

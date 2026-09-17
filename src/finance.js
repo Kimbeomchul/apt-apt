@@ -1,11 +1,13 @@
 import policy from '../data/policy.json' with {type:'json'};
 // Money is consistently expressed in 만원. All outputs are scenario estimates.
 export const policyVersion = policy.version;
+export function creditState(p){return p.creditStatus??(p.creditRestriction?'active':'none');}
 export function profileIssues(p) {
-  const errors=[];
+  const errors=[...(p.inputIssues||[])];
   if(!['none','sell','keep'].includes(p.homeStatus)) errors.push('현재 주택 보유 상태를 확인해주세요.');
   if(!['first','previous','unknown'].includes(p.purchaseHistory ?? 'previous')) errors.push('주택 구입 이력을 확인해주세요.');
   if(p.purchaseHistory==='first' && p.homeStatus!=='none') errors.push('현재 주택을 보유한 상태와 생애최초 선택이 모순됩니다. 세대의 주택 이력을 확인해주세요.');
+  if(!['none','active','repaid','unknown'].includes(creditState(p)))errors.push('최근 고액 신용대출의 상환 상태를 확인해주세요.');
   return errors;
 }
 export function scenarioFor(p, regulated=true) {
@@ -13,9 +15,12 @@ export function scenarioFor(p, regulated=true) {
   const reasons=profileIssues(p);
   if(p.homeStatus!=='none')reasons.push('주택 보유·처분 조건의 별도 심사가 필요합니다.');
   if(p.purchaseHistory==='unknown')reasons.push('생애최초 여부를 확인한 뒤 계산해주세요.');
-  if(p.creditRestriction && regulated)reasons.push('신용대출의 주택 취득 제한 확인이 필요합니다.');
+  const credit=creditState(p),notes=[];
+  if(['active','unknown'].includes(credit)&&regulated)reasons.push('최근 고액 신용대출의 상환·한도 해지 및 주택 취득 제한 약정 확인이 필요합니다. 구매 불가 판정은 아닙니다.');
+  if(credit==='repaid')notes.push('전액 상환·한도 해지 및 주택 취득 제한 종료를 가정한 참고 계산입니다. 실행 이력만으로 계산을 차단하지 않습니다. 실제 약정의 종료 조건은 대출 금융사에 확인하세요. 다른 남은 대출은 기존 부채에 입력해야 합니다.');
+  if(p.householdMode==='couple')notes.push('부부 소득과 부채를 모두 합산하는 은행 주담대 심사 가정입니다. 공동차주 등 은행별 합산 요건은 확인해야 하며, 주택가격별 대출 상한은 한 번만 적용합니다.');
   const ltv=(first?policy.bankScenario.firstHomeLtv:regulated?policy.regulatedLtv:policy.nonRegulatedLtv)/100;
-  return {supported:!reasons.length,reasons,ltv,dsr:policy.dsr/100,product:first?'생애최초 은행 주담대':'일반 은행 주담대',policyVersion:policy.version,policyDate:policy.checkedAt,moveInMonths:policy.bankScenario.moveInMonths,unverifiedConditions:policy.bankScenario.unverifiedConditions};
+  return {supported:!reasons.length,reasons,notes,conditional:credit==='repaid'||p.householdMode==='couple',ltv,dsr:policy.dsr/100,product:first?'생애최초 은행 주담대':'일반 은행 주담대',policyVersion:policy.version,policyDate:policy.checkedAt,moveInMonths:policy.bankScenario.moveInMonths,unverifiedConditions:policy.bankScenario.unverifiedConditions};
 }
 export function payment(principal, rate, years) {
   if (principal <= 0) return 0;

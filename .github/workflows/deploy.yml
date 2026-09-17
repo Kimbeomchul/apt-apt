@@ -30,7 +30,7 @@ jobs:
           if [ -n "$MOLIT_API_KEY" ] && [ -f data/master.csv ]; then
             python scripts/ingest.py --master data/master.csv
           else
-            echo 'No verified master/API key; using the reviewed initial dataset.' >> "$GITHUB_STEP_SUMMARY"
+            echo 'No API refresh configured; using the checked-in official apartment dataset.' >> "$GITHUB_STEP_SUMMARY"
           fi
       - run: npm run check
       - run: python -m unittest discover -s tests -p 'test_*.py'

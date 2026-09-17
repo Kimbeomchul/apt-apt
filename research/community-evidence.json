@@ -1,0 +1,44 @@
+[
+  {
+    "complex_id": "11650120447603",
+    "complex_name": "래미안원베일리",
+    "source_url": "https://raemian.co.kr/community/times/raemianHomeStyling/view.do?pg=1&searchStr=&searchType=&seq=98",
+    "source_type": "builder_official",
+    "published_at": "2023-09-26",
+    "checked_at": "2026-09-16",
+    "facilities": ["수영장", "유아풀", "사우나", "피트니스", "GX룸", "필라테스 공간", "골프연습장", "다목적체육관", "키즈공간", "북카페", "스카이 커뮤니티", "다이닝 공간"],
+    "existence_status": "documented_at_source_date",
+    "operation_status": "unknown",
+    "monthly_fee_won": null,
+    "opening_hours": null,
+    "note": "시공사 입주탐방에 시설 조성 근거. 현재 운영 및 조식 서비스 제공 여부는 별도 확인."
+  },
+  {
+    "complex_id": "11680120429716",
+    "complex_name": "래미안라클래시",
+    "source_url": "https://raemian.co.kr/community/times/raemianHomeStyling/view.do?pg=3&searchStr=&searchType=&seq=89",
+    "source_type": "builder_official",
+    "published_at": "2021-09-15",
+    "checked_at": "2026-09-16",
+    "facilities": ["실내골프연습장", "어린이도서관", "시니어스클럽", "사우나", "주민회의실", "스터디룸", "작은도서관", "독서실", "피트니스", "어린이놀이터"],
+    "existence_status": "documented_at_source_date",
+    "operation_status": "unknown",
+    "monthly_fee_won": null,
+    "opening_hours": null,
+    "note": "시공사 입주탐방 근거이며 시설별 현재 운영·요금은 미확인."
+  },
+  {
+    "complex_id": "11710120384641",
+    "complex_name": "헬리오시티",
+    "source_url": "https://www.songpa.go.kr/child/detailInfo.do?cpn=29&key=3623&resrceCd=LV0131-1067281&sc1=LV0131",
+    "source_type": "local_government",
+    "published_at": null,
+    "checked_at": "2026-09-16",
+    "facilities": ["헬리오라온어린이집"],
+    "existence_status": "documented_at_source_date",
+    "operation_status": "unknown",
+    "monthly_fee_won": null,
+    "opening_hours": null,
+    "note": "송파구 안내의 송파대로 345·414동 앞 주소로 단지 내 위치 확인. 이용 자격·정원은 별도 확인."
+  }
+]
