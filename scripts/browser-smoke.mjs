@@ -41,6 +41,28 @@ try{
   assert.ok(await run("document.querySelector('[data-detail]').textContent.includes('아남1')"),'search covers apartments beyond first page');
   await run("document.querySelector('#search').value='';document.querySelector('#search').dispatchEvent(new Event('input'));scrollTo(0,0)");
   await run('document.fonts.ready');
+  await run("document.querySelector('[data-region=서울]').click();document.querySelector('#district').value='서울|강남구';document.querySelector('#district').dispatchEvent(new Event('change'));document.querySelector('#price-quality').value='sufficient';document.querySelector('#price-quality').dispatchEvent(new Event('change'))");
+  assert.ok(await run("Array.from(document.querySelectorAll('.area-name')).every(e=>e.textContent.includes('강남구'))"),'district filters every visible card');
+  assert.ok(await run("document.querySelectorAll('.apartment-card').length>0"));
+  await run("document.querySelector('[data-detail]').click()");
+  let historyReady=false;for(let i=0;i<100;i++){if(await run("document.querySelectorAll('.history-table tbody tr').length===3")){historyReady=true;break;}await delay(100);}
+  assert.ok(historyReady,'3/6/12 month history loaded');
+  assert.ok(await run("document.querySelector('#price-history').textContent.includes('월별 가격 추이를 뜻하지 않습니다')"));
+  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+  assert.equal(await run("document.querySelector('dialog').scrollWidth<=document.querySelector('dialog').clientWidth"),true,'history fits mobile dialog');
+  await run("document.querySelector('#price-history').scrollIntoView({block:'start'})");
+  const historyShot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile('artifacts/history-mobile.png',Buffer.from(historyShot.data,'base64'));
+  await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
+  await run("document.querySelector('#close-modal').click();document.querySelector('[data-action=share-search]').click()");
+  const sharedUrl=await run("document.querySelector('#share-url').value");
+  assert.ok(sharedUrl.includes('district=')&&sharedUrl.includes('quality=sufficient')&&!sharedUrl.includes('income='));
+  await send('Page.navigate',{url:sharedUrl});
+  let restored=false;for(let i=0;i<100;i++){if(await run("document.querySelector('#district')?.value==='서울|강남구'&&document.querySelectorAll('.apartment-card').length>0")){restored=true;break;}await delay(100);}
+  assert.ok(restored,'shared search restores district after navigation');
+  assert.equal(await run("document.querySelector('#price-quality').value"),'sufficient');
+  await run("document.querySelector('[data-action=clear-filters]').click()");
+  assert.equal(await run("document.querySelector('#district').value"),'all');
+  assert.equal(await run("document.querySelector('#price-quality').value"),'all');
   await run("document.querySelector('#affordable').click();document.querySelector('[name=creditStatus]').value='active';document.querySelector('[name=creditStatus]').dispatchEvent(new Event('change',{bubbles:true}))");
   assert.ok(await run("document.querySelector('#budget-filter-notice').textContent.includes('적용 보류')"),'review reason is visible');
   assert.equal(await run("document.querySelector('#budget-filter-notice').hidden"),false);
@@ -54,6 +76,9 @@ try{
   assert.ok(await run("document.querySelector('#funding-summary').textContent.includes('5억')"),'cash aggregated');
   for(const prefix of ['giftSelf','giftSpouse'])await run(`document.querySelector('[name=${prefix}enabled]').click();document.querySelector('[name=${prefix}amount]').value=10000;document.querySelector('[name=${prefix}amount]').dispatchEvent(new Event('change',{bubbles:true}))`);
   assert.ok(await run("document.querySelector('[data-gift-result=giftSelf]').textContent.includes('485만원')"),'gift tax displayed');
+  await run("document.querySelector('[name=giftSelfpriorAmount]').value='';document.querySelector('[name=giftSelfpriorAmount]').dispatchEvent(new Event('change',{bubbles:true}))");
+  assert.ok(await run("document.querySelector('#budget-summary').textContent.includes('별도 심사')"),'empty gift history suppresses stale budget without crashing');
+  await run("document.querySelector('[name=giftSelfpriorAmount]').value=0;document.querySelector('[name=giftSelfpriorAmount]').dispatchEvent(new Event('change',{bubbles:true}))");
   assert.ok(await run("document.querySelector('#funding-summary').textContent.includes('970만원')"),'both recipients taxed');
   assert.ok(await run("document.querySelector('#funding-summary').textContent.includes('6.9억')"),'net gifts enter budget');
   await run("document.querySelector('[data-household=single]').click()");

@@ -10,6 +10,37 @@
   line-height: 1.65;
 }
 [hidden] { display: none !important; }
+.explore-selects { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; margin-top: 16px; }
+.explore-selects .field { margin-bottom: 0; }
+.explore-tools { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.explore-tools p { color: var(--muted); font-size: 13px; }
+.share-url { width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 16px; margin-top: 8px; }
+.price-history { padding: 18px; margin: 20px 0; background: white; border: 1px solid var(--line); border-radius: 12px; }
+.price-history h3 { margin-top: 0; }
+.period-chart { display: grid; gap: 12px; margin: 20px 0; }
+.period-chart > div { display: grid; grid-template-columns: 55px minmax(0,1fr) 95px; align-items: center; gap: 10px; font-size: 14px; }
+.period-chart strong { text-align: right; }
+.period-track { height: 14px; background: #eef3f7; border-radius: 5px; overflow: hidden; }
+.period-track span { display: block; height: 100%; background: #16888d; }
+.history-table caption { text-align: left; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+.history-table small { display: block; color: var(--muted); font-weight: 400; }
+.mobile-budget-dock { display: none; }
+#explore, #finance-title { scroll-margin-top: 18px; }
+@media(max-width:900px){
+  body { padding-bottom: 85px; }
+  .mobile-budget-dock { display: flex; gap: 10px; position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: #ffffffed; border-top: 1px solid var(--line); box-shadow: 0 -4px 18px #203f650c; backdrop-filter: blur(12px); }
+  .mobile-budget-dock a { min-height: 46px; display: flex; align-items: center; justify-content: center; padding: 10px; border-radius: 9px; font-size: 14px; }
+  .mobile-budget-dock a:first-child { border: 1px solid var(--line); }
+  .mobile-budget-dock a:last-child { flex: 1; background: var(--green); color: white; flex-wrap: wrap; gap: 4px; }
+  body:has(dialog[open]) .mobile-budget-dock { display: none; }
+  #toast { bottom: 90px; }
+}
+@media(max-width:560px){
+  .explore-selects { grid-template-columns: minmax(0,1fr); }
+  .price-history { padding: 12px; }
+  .period-chart > div { grid-template-columns: 45px minmax(0,1fr) 85px; font-size: 13px; gap: 6px; }
+  .filter-summary { display: block; flex-basis: 100%; text-align: left; }
+}
 .household-tabs { display: flex; padding: 5px; gap: 5px; margin-bottom: 12px; border-radius: 12px; background: #e9f0f6; }
 .household-tabs button { flex: 1; min-height: 46px; border-radius: 8px; font-size: 16px; font-weight: 700; color: #496175; }
 .household-tabs .selected { background: #087e83; color: white; box-shadow: 0 3px 8px #087e8320; }

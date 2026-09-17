@@ -6,6 +6,11 @@ import {evaluate,budgetFor,scenarioFor,validateProfile} from '../src/finance.js'
 const gift={enabled:true,amount:10000,relation:'parent',priorAmount:0,priorDeduction:0,priorSpecial:0,priorTax:0,usedDeduction:0,special:false,specialUsed:0,onTime:true};
 const raw={householdMode:'single',income:7000,cash:30000,takeHome:480,living:200,debtBalance:0,debtAnnual:0,debtMonthly:0,deposit:0,depositReady:false,rate:4.5,stress:3,years:30,reserve:3000,costRate:4,fixedCosts:1000,homeStatus:'none',purchaseHistory:'previous',creditStatus:'none',spouseincome:5000,spousecash:20000,spousetakeHome:350,spousedebtBalance:1000,spousedebtAnnual:300,spousedebtMonthly:25,spousecreditStatus:'none'};
 const giftRaw=(g,prefix='giftSelf')=>Object.fromEntries(Object.entries(g).map(([k,v])=>[prefix+k,v]));
+test('증여 입력을 지우거나 비정상 값을 넣어도 예외 없이 계산 보류',()=>{
+  for(const key of ['amount','priorAmount','priorDeduction','priorSpecial','priorTax','usedDeduction','specialUsed'])for(const value of [NaN,undefined,Infinity,-1]){
+    const g=calculateGift({...gift,[key]:value});assert.ok(g.issues.length);assert.equal(g.tax,null);
+  }
+});
 test('부모 성년자 현금 1억원: 일반공제 5천만원, 세금 485만원',()=>{
   const g=calculateGift(gift);assert.equal(g.deduction,5000);assert.equal(g.tax,485);assert.equal(g.net,9515);
   assert.equal(calculateGift({...gift,onTime:false}).tax,500);

@@ -14,6 +14,7 @@ export function calculateGift(g){
   const issues=[];
   const keys=['amount','priorAmount','priorDeduction','priorSpecial','priorTax','usedDeduction','specialUsed'];
   for(const key of keys)if(!Number.isFinite(g[key])||g[key]<0||g[key]>10000000)issues.push(' 증여 금액·이력은 0~10,000,000만원으로 입력하세요.');
+  if(issues.length)return {enabled:true,issues:[...new Set(issues)],tax:null,net:null,amount:g.amount};
   const allowance=giftPolicy.allowances[g.relation];
   if(allowance===undefined)issues.push(' 조부모 증여·비거주자·미성년자·비현금·특례 증여는 별도 세무 확인이 필요합니다.');
   if(g.usedDeduction>allowance)issues.push(' 사용한 일반공제가 관계별 공제 한도를 초과합니다.');

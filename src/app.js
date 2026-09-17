@@ -1,4 +1,5 @@
 import {evaluate,budgetFor,cashAvailable,priceTier,statusLabels,validateProfile,profileIssues,scenarioFor} from './finance.js';
+import {districtKey,districtOptions,matchesQuality,readSearchParams,sharedSearchUrl,windowComparison} from './explore.js';
 import {composeHousehold} from './household.js';
 import {setupHousehold,syncHousehold} from './household-ui.js';
 import {priceBands,matchesPriceBand} from './filters.js';
@@ -12,7 +13,7 @@ const link=(url,title,cls='source-link')=>`<a class="${cls}" href="${escape(safe
 const form=$('#finance-form');
 setupHousehold(form);
 const PAGE_SIZE=24;
-const state={page:1,listKey:'',priceBand:'all',data:null,policy:null,region:'all',area:'84',search:'',sort:'price',affordable:false,favoritesOnly:false,compared:[],favorites:new Set(),profile:null};
+const state={district:'all',quality:'all',page:1,listKey:'',priceBand:'all',data:null,policy:null,region:'all',area:'84',search:'',sort:'price',affordable:false,favoritesOnly:false,compared:[],favorites:new Set(),profile:null};
 try{const favorites=JSON.parse(localStorage.getItem('jip-favorites')||'[]');if(Array.isArray(favorites))state.favorites=new Set(favorites.filter(v=>typeof v==='string'));}catch{}
 function readProfile(){
   const f=new FormData(form),p={};
@@ -48,6 +49,7 @@ function renderBudget(){
   renderCreditHelp();
   renderFunding();
   const p=state.profile,stable=budgetFor(p,true),max=budgetFor(p,false),scenario=scenarioFor(p);
+  $('#mobile-budget-value').textContent=stable===null?'예산 확인 필요':'안정 '+money(stable,true);
   const previous=p.purchaseHistory==='first'&&scenario.supported?budgetFor({...p,purchaseHistory:'previous'}):null;
   $('#budget-summary').innerHTML=`<div class="budget-cell"><span class="budget-label">비상금과 생활을 지키는</span><div class="budget-value">${stable===null?'별도 심사':money(stable,true)} <span>${stable===null?'':'까지'}</span></div><p>안정 예산 · 소득 감소와 금리 상승 고려</p></div><div class="budget-cell"><span class="budget-label">현재 조건으로 계산한</span><div class="budget-value">${max===null?'별도 심사':money(max,true)} <span>${max===null?'':'까지'}</span></div><p>최대 예산 · 가용 자기자금 ${money(cashAvailable(p))}</p></div><div class="budget-foot"><span>${scenario.conditional?'조건부 참고 계산 · ':''}${p.householdMode==='couple'?'부부 합산 · ':''}${escape(scenario.product)} · 규제지역 LTV ${scenario.ltv*100}% · DSR 40% 가정${previous!==null?`<br>일반 → 생애최초 최대 구매가: ${money(previous)} → ${money(max)}`:''}${scenario.notes.length?'<br>'+escape(scenario.notes.join(' ')):''}${scenario.reasons.length?'<br>'+escape(scenario.reasons.join(' ')):''}</span><button data-action="policy">계산 가정 확인 ↗</button></div>`;
 }
@@ -57,12 +59,41 @@ function card(a){
   const saved=state.favorites.has(a.id),compared=state.compared.includes(a.id);
   return `<article class="apartment-card"><div class="card-top"><span class="area-name">${escape(a.region+' · '+a.district+' '+a.dong)}</span><button class="favorite ${saved?'saved':''}" data-favorite="${escape(a.id)}" aria-label="${escape(a.name)} 관심 ${saved?'해제':'저장'}" aria-pressed="${saved}">${saved?'♥':'♡'}</button></div><div class="card-main"><button class="card-title" data-detail="${escape(a.id)}">${escape(a.name)}</button><div class="card-meta"><span>${a.households.toLocaleString()}세대</span><span>·</span><span>${a.year}년 준공</span><span>·</span><span>${a.region==='서울'?'서울':'경기'}</span></div><div class="card-tags">${tier?`<span class="tag tier">가격 ${tier}군 · ${state.area}㎡</span>`:''}${a.tags.slice(0,2).map(t=>`<span class="tag">${escape(t)}</span>`).join('')}</div><div class="prices">${priceCell(a,'59')}${priceCell(a,'84')}</div><p class="card-analysis">${escape(a.summary)}</p><div class="affordability ${e?.status||''}"><span>${e?(e.scenario.conditional?'조건부 · ':'')+statusLabels[e.status]:'가격 확인 필요'}</span><span>${!e?'평형 선택 확인':!e.supported?'상세 조건 확인':e.shortage>=.01?money(e.shortage,true)+' 부족':'월 '+monthly(e.monthly)}</span></div></div><div class="card-actions"><button data-compare="${escape(a.id)}" aria-pressed="${compared}">${compared?'✓ 비교함에 담김':'＋ 비교하기'}</button>${link(naver(a),naverLabel(a),'naver-link')}</div></article>`;
 }
+function renderDistricts(){
+  const options=districtOptions(state.data.apartments,state.region);
+  if(state.district!=='all'&&!options.includes(state.district))state.district='all';
+  const select=$('#district');
+  if(select.dataset.region!==state.region){select.innerHTML='<option value="all">전체 시·군·구</option>'+options.map(d=>`<option value="${escape(d)}">${escape(d.replace('|',' · '))}</option>`).join('');select.dataset.region=state.region;}
+  select.value=state.district;
+}
+function shareSearch(){
+  const url=sharedSearchUrl(location.href,state);
+  openModal('이 검색 조건 공유하기',`<p>지역·평형·가격대·정렬·검색어·가격 자료 조건을 공유합니다. 소득·현금·부채·증여 입력, 예산 필터와 관심 단지는 포함하지 않습니다.</p><label class="field">공유 링크<input class="share-url" id="share-url" type="text" readonly value="${escape(url)}"></label><button class="primary" id="copy-search">링크 복사</button><p id="copy-status" role="status"></p>`,'SHARE SEARCH');
+  const input=$('#share-url'),status=$('#copy-status');
+  input.addEventListener('focus',e=>e.target.select());
+  $('#copy-search').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(url);if(status.isConnected)status.textContent='링크를 복사했어요.';}catch{if(input.isConnected&&$('#modal').open){input.focus();input.select();status.textContent='선택된 링크를 복사해주세요.';}}});
+}
+const historyCache=new Map();
+async function loadPriceHistory(a,target,area){
+  if(!a.priceHistoryAvailable){target.textContent='이 단지의 기간별 통계는 아직 연결되지 않았습니다.';return;}
+  const region=a.region==='서울'?'seoul':'gyeonggi';
+  try{
+    if(!historyCache.has(region))historyCache.set(region,fetch(`./data/price-history/${region}.json`,{cache:'no-cache'}).then(async response=>{if(!response.ok)throw Error('HTTP '+response.status);return response.json();}).catch(error=>{historyCache.delete(region);throw error;}));
+    const data=await historyCache.get(region);if(!target.isConnected)return;
+    if(data.asOf!==state.data.updatedAt)throw Error('기준일 불일치');
+    const windows=data.apartments[a.id]?.[area];if(!windows)throw Error('통계 미연결');
+    const maximum=Math.max(...Object.values(windows).map(w=>w.median_manwon||0),1);
+    target.innerHTML=`<h3>전용 ${area}㎡급 · 기간별 거래 비교</h3><p>동일 기준일(${escape(data.asOf)})까지 최근 3·6·12개월을 비교합니다. 기간이 서로 겹치며 월별 가격 추이를 뜻하지 않습니다.</p><div class="period-chart" role="img" aria-label="기간별 중위가격 비교. 정확한 값과 거래 수는 아래 표에 표시됩니다.">${['3','6','12'].map(months=>{const w=windows[months];return `<div><span>${months}개월</span><div class="period-track"><span style="width:${(w.median_manwon||0)/maximum*100}%"></span></div><strong>${w.count?money(w.median_manwon):'거래 없음'}</strong></div>`;}).join('')}</div><div class="table-scroll"><table class="history-table"><caption>대표가격으로 사용한 기간은 ‘카드 기준’으로 표시합니다.</caption><thead><tr><th>기간</th><th>중위가격 / 거래 수</th><th>거래 범위</th><th>직전 같은 길이 기간 대비</th></tr></thead><tbody>${['3','6','12'].map(months=>{const w=windows[months],quality=windowComparison(w);return `<tr><th>${months}개월${a.prices[area]?.periodMonths===Number(months)?'<br>카드 기준':''}<small>${escape(w.from_exclusive)} 이후</small></th><td>${w.count?money(w.median_manwon):'미확인'}<br>${w.count}건 · ${quality.label}</td><td>${w.count?money(w.min_manwon)+' ~ '+money(w.max_manwon):'—'}</td><td>${quality.change===null?'비교 표본 부족':(quality.change>0?'+':'')+quality.change+'%'}<br><small>직전 ${w.previous_count}건</small></td></tr>`;}).join('')}</tbody></table></div><p class="field-help">변화율은 현재·직전 구간 모두 3건 이상일 때만 표시합니다. 같은 면적급 안에서도 거래 면적·동·층 구성과 신고 지연에 따라 값이 달라질 수 있습니다.</p>`;
+  }catch{historyCache.delete(region);if(target.isConnected){target.innerHTML='<p>기간별 자료를 불러오지 못했습니다. 기존 참고가격은 그대로 확인할 수 있어요.</p><button class="outline-button">다시 불러오기</button>';target.querySelector('button').addEventListener('click',()=>{target.textContent='기간별 자료를 불러오는 중…';loadPriceHistory(a,target,area);});}}
+}
 function renderList(){
   if(!state.data)return;
+  renderDistricts();
   const query=state.search.trim().toLowerCase().replace(/\s/g,'');
-  const key=JSON.stringify([state.region,state.area,state.search,state.sort,state.affordable,state.favoritesOnly,state.profile,state.priceBand]);
+  const key=JSON.stringify([state.region,state.area,state.search,state.sort,state.affordable,state.favoritesOnly,state.profile,state.priceBand,state.district,state.quality]);
   if(key!==state.listKey){state.page=1;state.listKey=key;}
   let list=state.data.apartments.filter(a=>a.households>=400&&(state.region==='all'||a.region===state.region)&&(!query||(a.name+a.address+(a.aliases||[]).join('')).toLowerCase().replace(/\s/g,'').includes(query))&&(!state.favoritesOnly||state.favorites.has(a.id)));
+  list=list.filter(a=>(state.district==='all'||districtKey(a)===state.district)&&matchesQuality(a.prices[state.area],state.quality));
   const scenario=scenarioFor(state.profile),suspended=state.affordable&&!scenario.supported;
   const filterNotice=$('#budget-filter-notice');
   filterNotice.hidden=!suspended;
@@ -73,6 +104,8 @@ function renderList(){
   $('#price-band-help').textContent=`전용 ${state.area}㎡급 참고가격 기준 · 6·8·11억은 다음 구간, 15억은 마지막 구간에 포함됩니다. 가격 미확인·15억 초과는 전체에서 볼 수 있어요.`;
   list=list.filter(a=>matchesPriceBand(a.prices[state.area]?.amount,state.priceBand));
   list.sort((a,b)=>{if(state.sort==='households')return b.households-a.households;if(state.sort==='newest')return b.year-a.year;const av=a.prices[state.area]?.amount,bv=b.prices[state.area]?.amount;if(!av)return bv?1:0;if(!bv)return -1;return state.sort==='price-desc'?bv-av:av-bv;});
+  const known=list.filter(a=>a.prices[state.area]).length;
+  $('#coverage-summary').textContent=`검색 결과 중 가격 확인 ${known.toLocaleString()}개 · 미확인 ${(list.length-known).toLocaleString()}개 · ${state.data.updatedAt} 기준`;
   $('#result-count').innerHTML=`<strong>${list.length.toLocaleString()}개</strong> 단지 · 전체 ${state.data.apartments.length.toLocaleString()}개 중`;
   const pages=Math.max(1,Math.ceil(list.length/PAGE_SIZE));
   state.page=Math.min(state.page,pages);
@@ -85,6 +118,8 @@ function renderList(){
 function renderFilterSummary(){
   const parts=[];
   if(state.region!=='all')parts.push(state.region);
+  if(state.district!=='all')parts.push(state.district.split('|')[1]);
+  if(state.quality!=='all')parts.push(state.quality==='known'?'가격 확인':'거래 5건 이상');
   parts.push(`전용 ${state.area}㎡`);
   if(state.priceBand!=='all')parts.push(priceBands.find(b=>b.id===state.priceBand).label);
   if(state.affordable)parts.push(scenarioFor(state.profile).supported?'예산 안':'예산 필터 보류');
@@ -97,7 +132,8 @@ function priceDetail(a,area){const p=a.prices[area];return `<div><small>전용 $
 function detail(id){
   const a=getApartment(id);if(!a)return;
   const p=a.prices[state.area];
-  openModal(a.name,`<p class="detail-meta">${escape(a.address)} · ${a.households.toLocaleString()}세대 · ${a.year}년 준공</p><div class="detail-prices">${priceDetail(a,'59')}${priceDetail(a,'84')}</div><p class="notice">참고가격은 현재 매물 가격이 아닙니다. ${escape(state.data.priceMethod)}</p><div class="detail-grid"><section><h3>확인된 단지 정보</h3><ul>${a.facts.map(t=>`<li>${escape(t)}</li>`).join('')}</ul>${link(a.factSource||a.source,'단지 정보 출처')}</section><section><h3>현장에서 살펴볼 점</h3><ul>${a.checks.map(t=>`<li>${escape(t)}</li>`).join('')}</ul></section></div><h3>급지 · 커뮤니티</h3><div class="score-empty">${p?`선택 평형의 <strong>가격 ${priceTier(p.amount)}군</strong>입니다. `:''}가격군은 금액 구간 분류이며 입지 급지가 아닙니다. 입지·단지 품질 점수는 교통·학교·시설 자료 검증 후 제공됩니다.<br>커뮤니티: ${escape(a.facilities)}</div><section class="detail-calculator"><h3 style="margin-top:0">이 집, 내 조건으로 계산하면?</h3><p style="margin-bottom:12px">실제 보신 매물 가격으로 바꿔 계산할 수 있어요.</p><div class="two-fields"><label class="field">예상 매매가 (만원)<span class="input-wrap"><input id="detail-price" type="number" min="1" max="10000000" step="100" value="${p?.amount||''}" placeholder="가격 입력"><span>만원</span></span></label><label class="field">지역 규제 조건<select id="detail-regulation"><option value="true">규제지역 · LTV 40% 가정</option><option value="false">비규제지역 · LTV 70% 가정</option></select></label></div><p class="field-help" style="margin:0 0 14px">${a.regulated===null?'지역 지정 상태 미검증: 보수적으로 규제지역을 가정합니다.':'초기 조사 기준 규제지역을 가정합니다. 현재 지정·경과조건은 은행 확인이 필요합니다.'} 담보평가액=매매가 가정.</p><div id="detail-result" aria-live="polite"></div></section><div class="detail-actions">${link(naver(a),naverLabel(a),'primary')}${link('https://rt.molit.go.kr/','국토부에서 재확인','outline-button')}<button class="outline-button" data-compare="${a.id}">비교함에 담기</button></div>`,'APARTMENT REPORT');
+  openModal(a.name,`<p class="detail-meta">${escape(a.address)} · ${a.households.toLocaleString()}세대 · ${a.year}년 준공</p><div class="detail-prices">${priceDetail(a,'59')}${priceDetail(a,'84')}</div><p class="notice">참고가격은 현재 매물 가격이 아닙니다. ${escape(state.data.priceMethod)}</p><section id="price-history" class="price-history" aria-live="polite"><p>기간별 거래 자료를 불러오는 중…</p></section><div class="detail-grid"><section><h3>확인된 단지 정보</h3><ul>${a.facts.map(t=>`<li>${escape(t)}</li>`).join('')}</ul>${link(a.factSource||a.source,'단지 정보 출처')}</section><section><h3>현장에서 살펴볼 점</h3><ul>${a.checks.map(t=>`<li>${escape(t)}</li>`).join('')}</ul></section></div><h3>급지 · 커뮤니티</h3><div class="score-empty">${p?`선택 평형의 <strong>가격 ${priceTier(p.amount)}군</strong>입니다. `:''}가격군은 금액 구간 분류이며 입지 급지가 아닙니다. 입지·단지 품질 점수는 교통·학교·시설 자료 검증 후 제공됩니다.<br>커뮤니티: ${escape(a.facilities)}</div><section class="detail-calculator"><h3 style="margin-top:0">이 집, 내 조건으로 계산하면?</h3><p style="margin-bottom:12px">실제 보신 매물 가격으로 바꿔 계산할 수 있어요.</p><div class="two-fields"><label class="field">예상 매매가 (만원)<span class="input-wrap"><input id="detail-price" type="number" min="1" max="10000000" step="100" value="${p?.amount||''}" placeholder="가격 입력"><span>만원</span></span></label><label class="field">지역 규제 조건<select id="detail-regulation"><option value="true">규제지역 · LTV 40% 가정</option><option value="false">비규제지역 · LTV 70% 가정</option></select></label></div><p class="field-help" style="margin:0 0 14px">${a.regulated===null?'지역 지정 상태 미검증: 보수적으로 규제지역을 가정합니다.':'초기 조사 기준 규제지역을 가정합니다. 현재 지정·경과조건은 은행 확인이 필요합니다.'} 담보평가액=매매가 가정.</p><div id="detail-result" aria-live="polite"></div></section><div class="detail-actions">${link(naver(a),naverLabel(a),'primary')}${link('https://rt.molit.go.kr/','국토부에서 재확인','outline-button')}<button class="outline-button" data-compare="${a.id}">비교함에 담기</button></div>`,'APARTMENT REPORT');
+  loadPriceHistory(a,$('#price-history'),state.area);
   const update=()=>{const value=Number($('#detail-price').value);const container=$('#detail-result');if(!$('#detail-price').value||value<=0||!Number.isFinite(value)||value>10000000){container.innerHTML='<p>1~10,000,000만원 범위로 예상 매매가를 입력해주세요.</p>';return;}const e=evaluate(value,state.profile,{regulated:$('#detail-regulation').value==='true'});container.innerHTML=calculationHtml(e);};
   $('#detail-price').addEventListener('input',update);$('#detail-regulation').addEventListener('change',update);update();
 }
@@ -120,11 +156,11 @@ function policy(){const p=state.policy;openModal('대출 계산, 이렇게 가�
 function sources(){openModal('가격과 데이터의 출처',`<p>${escape(state.data.coverage)}</p><p class="notice">공식 단지 마스터 전체와 주소·명칭으로 연결한 국토부 CSV 거래를 제공합니다. 실시간 매물이나 모든 현존 단지의 전수 검증 결과는 아닙니다.</p><h3>대략적인 가격은 어떻게 표시하나요?</h3><p>${escape(state.data.priceMethod)} 카드 금액은 0.1억원 단위로 반올림합니다. 상세에서 집계 기간·건수·출처를 확인할 수 있습니다.</p><h3>네이버 연결</h3><p>단지 식별자가 확인된 곳은 직접 연결합니다. 나머지는 단지명과 주소를 포함한 네이버 검색으로 연결하므로 검색 결과에서 네이버 부동산을 선택해주세요. 로그인이나 서비스 상태에 따라 외부 화면은 달라질 수 있습니다.</p><h3>정식 데이터 연동</h3><p>공식 ID를 기준으로 단지를 수록했습니다. 해제·직거래·중복 의심·단지 식별 충돌 거래는 가격 집계에서 제외합니다. 최근 신고 지연과 정정은 이후 갱신 시 반영됩니다.</p>${link('https://www.data.go.kr/data/15126468/openapi.do','국토부 아파트 실거래가 API')}${link('https://www.data.go.kr/data/15106861/fileData.do','한국부동산원 단지 식별정보')}<h3>자료별 링크</h3><p>각 단지 상세에서 단지 정보와 가격 출처를 확인할 수 있습니다.</p><p>데이터 조사일: ${escape(state.data.updatedAt)}. 취소·정정과 신고 지연에 따라 값이 바뀔 수 있습니다.</p>`,'DATA & SOURCES');}
 function privacy(){openModal('금융정보는 내 브라우저 안에',`<p>연봉·자산·부채 입력은 현재 브라우저 메모리에서만 계산하고 서버로 전송하거나 URL에 포함하지 않습니다. 새로고침하면 입력값은 초기화됩니다.</p><p>관심 아파트의 단지 식별자만 이 브라우저에 저장합니다. 외부 링크를 열면 해당 서비스의 정책이 적용됩니다. 화면 글꼴은 Google Fonts에서 불러오며 금융정보를 보내지 않습니다.</p><button class="outline-button" style="margin-top:20px" data-action="clear-saved">저장한 관심 단지 삭제</button>`,'PRIVACY');}
 function setPressed(attr,value){document.querySelectorAll(`[${attr}]`).forEach(b=>{const selected=b.getAttribute(attr)===value;b.classList.toggle('selected',selected);b.setAttribute('aria-pressed',String(selected));});}
-function clearFilters(){state.priceBand='all';state.region='all';state.area='84';state.search='';state.sort='price';state.affordable=false;state.favoritesOnly=false;$('#search').value='';$('#sort').value='price';$('#affordable').checked=false;$('#favorites-only').checked=false;setPressed('data-region','all');setPressed('data-area','84');renderList();}
+function clearFilters(){state.district='all';state.quality='all';$('#price-quality').value='all';state.priceBand='all';state.region='all';state.area='84';state.search='';state.sort='price';state.affordable=false;state.favoritesOnly=false;$('#search').value='';$('#sort').value='price';$('#affordable').checked=false;$('#favorites-only').checked=false;setPressed('data-region','all');setPressed('data-area','84');renderList();}
 function saveFavorites(){try{localStorage.setItem('jip-favorites',JSON.stringify([...state.favorites]));}catch{toast('이 브라우저에서는 관심 단지를 저장할 수 없어요.');}}
 document.addEventListener('click',event=>{
   const b=event.target.closest('button');if(!b)return;
-  if(b.dataset.region){state.region=b.dataset.region;setPressed('data-region',state.region);renderList();}
+  if(b.dataset.region){state.district='all';state.region=b.dataset.region;setPressed('data-region',state.region);renderList();}
   if(b.dataset.area){state.area=b.dataset.area;setPressed('data-area',state.area);renderList();}
   if(b.dataset.priceBand){state.priceBand=b.dataset.priceBand;renderList();$(`[data-price-band="${state.priceBand}"]`).focus({preventScroll:true});}
   if(b.dataset.detail)detail(b.dataset.detail);
@@ -132,9 +168,11 @@ document.addEventListener('click',event=>{
   if(b.dataset.page){state.page=Number(b.dataset.page);renderList();$('#result-count').scrollIntoView({block:'start'});$('#pagination button:not(:disabled)')?.focus({preventScroll:true});}
   if(b.dataset.compare){const id=b.dataset.compare;if(state.compared.includes(id)){state.compared=state.compared.filter(x=>x!==id);toast('비교함에서 제외했어요.');}else if(state.compared.length>=3){toast('최대 3개 단지를 비교할 수 있어요.');}else{state.compared.push(id);toast('비교함에 담았어요. 상단 비교함에서 확인하세요.');}renderList();}
   if(b.dataset.removeCompare){state.compared=state.compared.filter(x=>x!==b.dataset.removeCompare);renderList();comparison();}
-  const actions={method,policy,sources,comparison,privacy,'clear-filters':clearFilters,'clear-saved':()=>{state.favorites.clear();saveFavorites();renderList();toast('관심 단지를 삭제했어요.');}};
+  const actions={method,policy,sources,comparison,privacy,'share-search':shareSearch,'clear-filters':clearFilters,'clear-saved':()=>{state.favorites.clear();saveFavorites();renderList();toast('관심 단지를 삭제했어요.');}};
   if(b.dataset.action&&actions[b.dataset.action]){if(!state.data||!state.policy){toast('자료를 불러온 후 다시 시도해주세요.');return;}actions[b.dataset.action]();}
 });
+$('#district').addEventListener('change',e=>{state.district=e.target.value;renderList();});
+$('#price-quality').addEventListener('change',e=>{state.quality=e.target.value;renderList();});
 $('#search').addEventListener('input',e=>{state.search=e.target.value;renderList();});
 $('#sort').addEventListener('change',e=>{state.sort=e.target.value;renderList();});
 $('#affordable').addEventListener('change',e=>{state.affordable=e.target.checked;renderList();});
@@ -160,5 +198,5 @@ $('#close-modal').addEventListener('click',()=>$('#modal').close());
 $('#modal').addEventListener('click',e=>{if(e.target!==$('#modal'))return;const r=$('#modal').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('#modal').close();});
 try{
   const [data,policyData]=await Promise.all(['./data/apartments.json','./data/policy.json'].map(async url=>{const r=await fetch(url);if(!r.ok)throw Error('HTTP '+r.status);return r.json();}));
-  state.data=data;state.policy=policyData;renderBudget();renderList();
+  state.data=data;state.policy=policyData;Object.assign(state,readSearchParams(location.search));$('#search').value=state.search;$('#sort').value=state.sort;$('#price-quality').value=state.quality;setPressed('data-region',state.region);setPressed('data-area',state.area);renderBudget();renderList();
 }catch(error){$('#apartments').innerHTML='<div class="empty-state">자료를 불러오지 못했어요.<br>인터넷 연결을 확인하고 새로고침해주세요.</div>';$('#result-count').textContent='데이터 로드 실패';console.error('Dataset load failed:',error.message);}

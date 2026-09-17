@@ -1,4 +1,4 @@
-import {readFile,writeFile} from 'node:fs/promises';
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import {validateDataset} from './validate-data.mjs';
 
@@ -12,10 +12,15 @@ export function selectPrice(windows,source){
 export async function exportApp(){
   const inputs=await Promise.all(['seoul','gyeonggi'].map(async region=>JSON.parse(await readFile(`research/regions/${region}.json`,'utf8'))));
   if(inputs[0].as_of!==inputs[1].as_of)throw Error('Research dates differ');
+  await mkdir('data/price-history',{recursive:true});
+  for(const [i,region] of ['seoul','gyeonggi'].entries()){
+    const history={asOf:inputs[i].as_of,apartments:Object.fromEntries(inputs[i].apartments.map(a=>[a.id,a.price_windows]))};
+    await writeFile(`data/price-history/${region}.json`,JSON.stringify(history)+'\n');
+  }
   const apartments=inputs.flatMap(d=>d.apartments).map(a=>({
     id:a.id,name:a.name,aliases:a.aliases,region:a.region,district:a.district,dong:'',address:a.address,
     households:a.households,year:Number(a.approved_date.slice(0,4)),source:a.source_url,regulated:null,
-    verificationStatus:a.verification_status,tier:null,tierStatus:'pending',
+    verificationStatus:a.verification_status,tier:null,tierStatus:'pending',priceHistoryAvailable:true,
     prices:Object.fromEntries(['59','84'].map(area=>[area,selectPrice(a.price_windows[area],a.price_source)])),
     missing:{'59':'최근 12개월 내 연결된 59㎡급 거래가 없습니다.','84':'최근 12개월 내 연결된 84㎡급 거래가 없습니다.'},
     tags:['공식 단지 정보',...(a.households>=1000?['1천 세대 이상']:[])],
