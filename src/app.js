@@ -31,6 +31,7 @@ function readProfile(){
 }
 state.profile=readProfile();
 function toast(message){$('#toast').textContent=message;$('#toast').classList.add('visible');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').classList.remove('visible'),2800);}
+function toastUndo(message,undo){const target=$('#toast');target.innerHTML=`<span>${escape(message)}</span><button type="button" class="toast-action" data-toast-undo>되돌리기</button>`;target.classList.add('visible');clearTimeout(toast.timer);toast.undo=undo;toast.timer=setTimeout(()=>{target.classList.remove('visible');toast.undo=null;},4200);}
 function naver(a){return a.naverUrl||`https://search.naver.com/search.naver?query=${encodeURIComponent(a.address+' '+a.name+' 네이버 부동산')}`;}
 function naverLabel(a){return a.naverUrl?'네이버 매물 보기':'네이버에서 매물 찾기';}
 function getApartment(id){return state.data.apartments.find(a=>a.id===id);}
@@ -269,7 +270,8 @@ document.addEventListener('click',event=>{
   if(b.dataset.cardInsight){const panel=b.nextElementSibling;b.setAttribute('aria-expanded',String(b.getAttribute('aria-expanded')!=='true'));panel?.classList.toggle('open');return;}
   if(b.dataset.section){const section=$('#modal .'+b.dataset.section);section?.scrollIntoView({block:'start',behavior:'smooth'});}
   if(b.dataset.detail)detail(b.dataset.detail);
-  if(b.dataset.favorite){const id=b.dataset.favorite;state.favorites.has(id)?state.favorites.delete(id):state.favorites.add(id);saveFavorites();renderList();}
+  if(b.dataset.favorite){const id=b.dataset.favorite,wasSaved=state.favorites.has(id);wasSaved?state.favorites.delete(id):state.favorites.add(id);saveFavorites();renderList();toastUndo(wasSaved?'관심 단지에서 삭제했어요.':'관심 단지에 저장했어요.',()=>{wasSaved?state.favorites.add(id):state.favorites.delete(id);saveFavorites();renderList();toast(wasSaved?'관심 단지로 되돌렸어요.':'관심 단지 저장을 취소했어요.');});}
+  if(b.dataset.toastUndo&&toast.undo){const undo=toast.undo;toast.undo=null;$('#toast').classList.remove('visible');undo();return;}
   if(b.dataset.page){state.page=Number(b.dataset.page);renderList();$('#result-count').scrollIntoView({block:'start'});$('#pagination button:not(:disabled)')?.focus({preventScroll:true});}
   if(b.dataset.compare){const id=b.dataset.compare;if(state.compared.includes(id)){state.compared=state.compared.filter(x=>x!==id);toast('비교함에서 제외했어요.');}else if(state.compared.length>=3){toast('최대 3개 단지를 비교할 수 있어요.');}else{state.compared.push(id);toast('비교함에 담았어요. 상단 비교함에서 확인하세요.');}renderList();}
   if(b.dataset.removeCompare){state.compared=state.compared.filter(x=>x!==b.dataset.removeCompare);renderList();comparison();}
