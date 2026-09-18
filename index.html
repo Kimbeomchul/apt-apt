@@ -9,6 +9,7 @@
   <link rel="icon" href="./assets/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./src/styles.css">
   <link rel="stylesheet" href="./src/theme.css">
+  <link rel="stylesheet" href="./src/ux.css">
 </head>
 <body>
   <a class="skip-link" href="#explore">아파트 목록으로 바로가기</a>
@@ -18,15 +19,32 @@
     <button class="compare-top" type="button" data-action="comparison">비교함 <span id="compare-count">0</span></button>
   </header>
   <main class="shell">
-    <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-copy"><span class="eyebrow"><i></i> SEOUL & GYEONGGI · APARTMENT GUIDE</span><h1 id="hero-title">좋은 집의 기준에,<br><em>나의 가능성을 더하다.</em></h1><p>어디가 좋은지에서, 어디까지 가능한지까지.<br>아파트의 가격과 내 자금 계획을 함께 살펴보세요.</p><div class="hero-tags"><span>400세대 이상</span><span>59㎡ · 84㎡</span><span>출처가 있는 참고가격</span></div></div>
-      <div class="city" aria-hidden="true"><div class="sun"></div><div class="orbit"></div><div class="tower t1"></div><div class="tower t2"></div><div class="tower t3"></div><div class="tower t4"></div><div class="city-ground"></div><div class="tree tr1"></div><div class="tree tr2"></div><div class="city-caption">A PLACE TO CALL YOURS.</div></div>
-    </section>
+    <section class="explore-intro"><h1>살고 싶은 집, 가능한 예산으로.</h1><p>서울·경기 아파트를 내 자금으로 비교하세요.</p><button class="primary" data-action="finance">내 예산 알아보기</button></section>
     <div class="workspace">
-      <aside class="finance-panel" aria-labelledby="finance-title">
+      <section class="main-content" id="explore" aria-labelledby="explore-title">
+        <div class="budget-summary" id="budget-summary" aria-live="polite"></div>
+        <div class="section-heading"><div><span class="eyebrow dark">FIND YOUR PLACE</span><h2 id="explore-title">나에게 맞는 아파트</h2></div><span class="outline-tag">400세대 이상만</span></div>
+        <div class="filters">
+          <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="아파트명, 지역으로 찾아보세요" aria-label="아파트명 또는 지역 검색"></label>
+          <div class="filter-row"><div class="segmented" aria-label="지역 선택"><button class="selected" data-region="all" aria-pressed="true">전체</button><button data-region="서울" aria-pressed="false">서울</button><button data-region="경기" aria-pressed="false">경기</button></div><div class="segmented" aria-label="평형 선택"><button data-area="59" aria-pressed="false">59㎡<span class="area-alias"> · 24평급</span></button><button class="selected" data-area="84" aria-pressed="true">84㎡<span class="area-alias"> · 국평</span></button></div></div>
+          <details class="advanced-filters"><summary>지역 상세 · 추가 필터</summary><div class="explore-selects"><label class="field">시·군·구<select id="district"><option value="all">전체 시·군·구</option></select></label><label class="field">가격 자료<select id="price-quality"><option value="all">미확인 포함 전체</option><option value="known">참고가격 있는 단지</option><option value="sufficient">대표가격 거래 5건 이상</option></select></label></div>
+          <div class="filter-row secondary"><label class="checkbox"><input type="checkbox" id="affordable">예산 안의 단지만</label><label class="checkbox"><input type="checkbox" id="favorites-only">관심 단지만</label><label class="sort-label">정렬<select id="sort"><option value="price">가격 낮은 순</option><option value="price-desc">가격 높은 순</option><option value="households">세대수 많은 순</option><option value="newest">준공연도 최신 순</option></select></label></div>
+          </details><div class="explore-tools"><p id="coverage-summary" aria-live="polite"></p><button class="text-button" data-action="share-search">검색 조건 공유 ↗</button></div>
+        </div>
+        <p id="budget-filter-notice" class="notice" role="status" hidden></p>
+        <section class="price-browser" aria-labelledby="price-band-title"><div class="price-browser-heading"><h3 id="price-band-title">가격대별로 둘러보기</h3><button class="text-button" data-action="clear-filters">필터 초기화 ↺</button></div><div id="price-bands" class="price-bands" role="group" aria-label="참고가격 구간"></div><p id="price-band-help" class="price-band-help"></p></section>
+        <div class="results-info"><span id="result-count" aria-live="polite">자료를 불러오는 중…</span><span id="filter-summary" class="filter-summary" aria-live="polite"></span><button class="text-button" data-action="sources">가격·데이터 안내 ⓘ</button></div>
+        <div id="apartments" class="apartment-grid"><div class="empty-state">단지 자료를 불러오고 있습니다.</div></div>
+        <nav id="pagination" class="pagination" aria-label="아파트 목록 페이지"></nav>
+        <div class="data-note"><span>ⓘ</span><p>서울·경기 400세대 이상 공식 마스터 전체를 제공합니다. 기준시점 밖 신축·임대 등은 누락될 수 있습니다. 참고가격은 국토부 실거래 중위값이며 현재 매물 호가와 다릅니다. 미확인 평형은 가격을 추정하지 않습니다.</p></div>
+      </section>
+    </div>
+    <section class="bottom-note"><div><span class="eyebrow dark">A BETTER DECISION</span><h2>숫자 다음에는,<br>나의 생활을 살펴보세요.</h2></div><p>출퇴근 시간, 아이의 통학길, 저녁의 주차 공간.<br>가격으로 다 말할 수 없는 기준은<br>단지 상세의 확인 목록에 담았습니다.</p><button class="outline-button" data-action="method">집의 기준 알아보기 ↗</button></section>
+  </main>
+  <footer><a class="brand" href="./">집의 기준</a><p>서울·경기 아파트 구매 계획 도우미 · BETA<br>가격과 대출은 참고용 추정치이며 금융기관 심사 결과가 아닙니다.</p><button class="text-button" data-action="privacy">개인정보 안내</button></footer>
+  <dialog id="finance-dialog" aria-labelledby="finance-title"><div class="settings-head"><strong>내 자금 설정</strong><button type="button" class="icon-button" id="close-finance" aria-label="설정 취소하고 닫기">×</button></div>      <section class="finance-panel" aria-labelledby="finance-title">
         <div class="panel-heading"><span class="section-number">01</span><h2 id="finance-title">나의 구매 여력</h2><span class="mini-tag">예산 계산</span></div>
-        <p class="muted intro">세 가지 순서로 입력하면 단지마다 같은 기준으로 계산해요.</p>
-        <ol class="input-steps" aria-label="예산 계산 단계"><li class="current"><b>1</b><span>기본 조건</span></li><li><b>2</b><span>부채·보증금</span></li><li><b>3</b><span>상세 가정</span></li></ol>
+        <p class="muted intro">예시 금액을 내 조건으로 바꾼 뒤 결과를 적용하세요. 닫으면 변경 전 조건으로 돌아갑니다.</p>
         <form id="finance-form">
           <p class="form-group-label">먼저, 지금 바로 아는 금액만 입력하세요.</p>
           <label class="field">세전 연봉 <span class="input-wrap"><input name="income" type="number" min="0" max="1000000" step="100" value="7000" required inputmode="decimal" aria-describedby="income-help"><span>만원 / 년</span></span><small id="income-help" class="field-help">세금 공제 전 연간 소득이에요.</small></label>
@@ -53,34 +71,14 @@
             <label class="field">이사·수리 추가 예산<span class="input-wrap"><input name="fixedCosts" type="number" min="0" max="1000000" value="1000" required><span>만원</span></span></label>
           </details>
           <p id="form-error" class="error" role="alert" tabindex="-1"></p>
-          <button class="primary calculate" type="submit">내 조건으로 계산하기 <span>↗</span></button>
-          <p class="privacy">◈ 입력한 금융정보는 서버로 전송하지 않아요.</p>
+          <button class="primary calculate" type="submit">결과 적용 <span>↗</span></button>
+          <label class="checkbox"><input id="remember-finance" type="checkbox">이 기기에 자금 조건 저장</label><p class="privacy">◈ 입력한 금융정보는 서버로 전송하지 않아요.</p>
           <button class="reset-button" type="reset">입력 초기화</button>
         </form>
-      </aside>
-      <section class="main-content" id="explore" aria-labelledby="explore-title">
-        <div class="budget-summary" id="budget-summary" aria-live="polite"></div>
-        <div class="section-heading"><div><span class="eyebrow dark">FIND YOUR PLACE</span><h2 id="explore-title">나에게 맞는 아파트</h2></div><span class="outline-tag">400세대 이상만</span></div>
-        <div class="filters">
-          <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="아파트명, 지역으로 찾아보세요" aria-label="아파트명 또는 지역 검색"></label>
-          <div class="filter-row"><div class="segmented" aria-label="지역 선택"><button class="selected" data-region="all" aria-pressed="true">전체</button><button data-region="서울" aria-pressed="false">서울</button><button data-region="경기" aria-pressed="false">경기</button></div><div class="segmented" aria-label="평형 선택"><button data-area="59" aria-pressed="false">59㎡ · 24평급</button><button class="selected" data-area="84" aria-pressed="true">84㎡ · 국평</button></div></div>
-          <div class="explore-selects"><label class="field">시·군·구<select id="district"><option value="all">전체 시·군·구</option></select></label><label class="field">가격 자료<select id="price-quality"><option value="all">미확인 포함 전체</option><option value="known">참고가격 있는 단지</option><option value="sufficient">대표가격 거래 5건 이상</option></select></label></div>
-          <div class="filter-row secondary"><label class="checkbox"><input type="checkbox" id="affordable">예산 안의 단지만</label><label class="checkbox"><input type="checkbox" id="favorites-only">관심 단지만</label><label class="sort-label">정렬<select id="sort"><option value="price">가격 낮은 순</option><option value="price-desc">가격 높은 순</option><option value="households">세대수 많은 순</option><option value="newest">준공연도 최신 순</option></select></label></div>
-          <div class="explore-tools"><p id="coverage-summary" aria-live="polite"></p><button class="text-button" data-action="share-search">검색 조건 공유 ↗</button></div>
-        </div>
-        <p id="budget-filter-notice" class="notice" role="status" hidden></p>
-        <section class="price-browser" aria-labelledby="price-band-title"><div class="price-browser-heading"><h3 id="price-band-title">가격대별로 둘러보기</h3><button class="text-button" data-action="clear-filters">필터 초기화 ↺</button></div><div id="price-bands" class="price-bands" role="group" aria-label="참고가격 구간"></div><p id="price-band-help" class="price-band-help"></p></section>
-        <div class="results-info"><span id="result-count" aria-live="polite">자료를 불러오는 중…</span><span id="filter-summary" class="filter-summary" aria-live="polite"></span><button class="text-button" data-action="sources">가격·데이터 안내 ⓘ</button></div>
-        <div id="apartments" class="apartment-grid"><div class="empty-state">단지 자료를 불러오고 있습니다.</div></div>
-        <nav id="pagination" class="pagination" aria-label="아파트 목록 페이지"></nav>
-        <div class="data-note"><span>ⓘ</span><p>서울·경기 400세대 이상 공식 마스터 전체를 제공합니다. 기준시점 밖 신축·임대 등은 누락될 수 있습니다. 참고가격은 국토부 실거래 중위값이며 현재 매물 호가와 다릅니다. 미확인 평형은 가격을 추정하지 않습니다.</p></div>
       </section>
-    </div>
-    <section class="bottom-note"><div><span class="eyebrow dark">A BETTER DECISION</span><h2>숫자 다음에는,<br>나의 생활을 살펴보세요.</h2></div><p>출퇴근 시간, 아이의 통학길, 저녁의 주차 공간.<br>가격으로 다 말할 수 없는 기준은<br>단지 상세의 확인 목록에 담았습니다.</p><button class="outline-button" data-action="method">집의 기준 알아보기 ↗</button></section>
-  </main>
-  <footer><a class="brand" href="./">집의 기준</a><p>서울·경기 아파트 구매 계획 도우미 · BETA<br>가격과 대출은 참고용 추정치이며 금융기관 심사 결과가 아닙니다.</p><button class="text-button" data-action="privacy">개인정보 안내</button></footer>
+</dialog>
   <dialog id="modal" aria-labelledby="modal-title"><div class="modal-head"><div id="modal-kicker" class="eyebrow dark"></div><button id="close-modal" class="icon-button" aria-label="닫기">×</button></div><div id="modal-body"></div></dialog>
-  <nav class="mobile-budget-dock" aria-label="계산과 목록 바로가기"><a href="#finance-title">조건 수정</a><a href="#explore"><span id="mobile-budget-value">내 예산</span> · 결과 보기 ↓</a></nav>
+  <nav class="mobile-budget-dock" aria-label="계산과 목록 바로가기"><button data-action="finance">내 자금 설정</button><a href="#explore"><span id="mobile-budget-value">내 예산</span> · 아파트 보기 ↓</a></nav>
   <div id="toast" role="status" aria-live="polite"></div>
   <noscript><p>이 사이트의 검색과 계산에는 JavaScript가 필요합니다.</p></noscript>
   <script type="module" src="./src/app.js"></script>

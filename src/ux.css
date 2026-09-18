@@ -1,0 +1,82 @@
+/* Exploration first; finance remains a deliberate, cancellable task. */
+:root { --ux-ink:#183247; --ux-accent:#087f85; }
+body {font-size:17px;line-height:1.65;color:var(--ux-ink);background:#f4f7fa}
+.workspace {display:block;max-width:1120px;margin:auto}
+.explore-intro {max-width:1120px;margin:24px auto;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.explore-intro h1 {font-size:28px;letter-spacing:-1px;margin:0}
+.explore-intro p {flex:1;min-width:200px;margin:0;font-size:16px}
+.section-heading,.bottom-note {display:none}
+.budget-summary {margin-bottom:16px}
+.budget-overview {grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;gap:12px}
+.budget-overview span {display:block;font-size:14px}.budget-overview strong{font-size:28px;color:#076a71}
+.budget-assumptions {grid-column:1/-1;padding:0 20px 12px;font-size:14px}.budget-assumptions summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.budget-review{grid-column:1/-1;margin:0;padding:12px 20px;background:#fff6e8;font-size:15px}
+.filter-summary {display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.filter-summary button{border:1px solid #cadbdc;background:#fff;color:#145d62;border-radius:20px;padding:4px 10px;font-size:14px}
+.filter-summary>span{font-size:14px;margin-right:4px}
+.sensitivity{padding:18px;margin-top:18px;background:#f3f6fa;border-radius:12px}.sensitivity summary{cursor:pointer;min-height:44px}
+.budget-welcome {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;grid-column:1/-1;background:#e7f4f3}
+.filters {padding:16px}
+.advanced-filters {margin-top:10px}
+.advanced-filters summary {cursor:pointer;min-height:44px;display:flex;align-items:center;color:#34566b;font-weight:600}
+.explore-tools {font-size:14px}
+.price-browser {margin:12px 0}
+.price-band-help {font-size:14px}
+.price-bands button {min-height:52px;font-size:16px}
+.apartment-grid {grid-template-columns:repeat(3,minmax(0,1fr))}
+.card-title {font-size:21px}
+.prices {grid-template-columns:1fr}
+.price-cell {padding:12px 0}
+.price-cell strong {font-size:28px}
+.card-tags {display:none}
+.card-meta,.date,.field-help,.privacy {font-size:14px!important;line-height:1.65}
+.card-actions button,.card-actions a {font-size:15px;min-height:44px}
+button,select,input {font-size:16px}
+button,.checkbox {min-height:44px}
+button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible,select:focus-visible {outline:3px solid #087f85;outline-offset:3px}
+[hidden] {display:none!important}
+body:has(dialog[open]) {overflow:hidden}
+#finance-dialog {width:min(680px,calc(100% - 32px));max-height:92dvh;padding:0;border:0;border-radius:20px}
+.settings-head {display:flex;justify-content:space-between;align-items:center;padding:12px 24px;background:#fff;position:sticky;top:0;z-index:2;border-bottom:1px solid #d8e2ea}
+#finance-dialog .finance-panel {position:static;width:auto;padding:24px;box-shadow:none;border:0}
+.finance-panel .mini-tag,.finance-panel .section-number {display:none}
+.finance-panel .intro {font-size:15px}
+.finance-panel .field {font-size:16px;min-width:0}
+.finance-panel .input-wrap {min-width:0}
+.finance-panel input {min-width:0;max-width:100%;font-size:18px}
+.finance-panel .two-fields {grid-template-columns:repeat(2,minmax(0,1fr))}
+.finance-panel summary {white-space:normal;overflow-wrap:anywhere;cursor:pointer;min-height:48px}
+.gifts-panel {padding:16px;border:1px solid #d3e5e5;border-radius:12px;margin:20px 0}
+.gifts-panel>summary {font-weight:700;color:#087177}
+.amount-preview {display:block;color:#087177;font-size:14px;margin-top:3px;min-height:20px}
+.calculate {position:sticky;bottom:0;z-index:1;box-shadow:0 -8px 18px #ffffffd9;min-height:52px}
+.mobile-budget-dock button {border:0;background:#fff;color:#183247;padding:10px;border-radius:10px}
+.planner {padding:18px;margin-top:20px;background:#eef6f7;border-radius:14px}
+.planner-output {overflow:auto}
+.planner label {display:block;margin:10px 0;font-size:15px}
+.planner input {width:100%;min-height:44px;border:1px solid #bacdd7;border-radius:8px;padding:8px}
+.planner .planner-inputs {display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.report-print {margin:16px 0}
+.detail-navigation{display:flex;gap:8px;flex-wrap:wrap;padding:8px 0;margin-bottom:12px}.detail-navigation button{border:1px solid #cadbdc;border-radius:24px;padding:6px 16px;color:#075e65;background:#f0f8f7}
+.detail-prices,.detail-calculator,.detail-grid{scroll-margin-top:70px}
+@media(max-width:1000px){.apartment-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){
+ .header{min-height:90px;padding-top:10px;padding-bottom:8px}.brand small{display:none}
+ .budget-welcome>span{display:none}.budget-welcome{justify-content:flex-start}
+ .results-info{display:grid;grid-template-columns:1fr auto;padding:4px 0!important}.results-info #filter-summary{grid-column:1/-1;grid-row:2;white-space:normal;overflow:visible;text-align:left}.results-info>.text-button{grid-column:2;grid-row:1;font-size:13px}
+ .filters .filter-row:not(.secondary){display:grid;grid-template-columns:1.1fr 1fr;align-items:stretch}.filters .segmented{min-width:0}.filters .segmented button{padding:6px;font-size:14px;line-height:1.4}.area-alias{display:none}
+ .explore-intro{margin:12px 0;gap:8px}.explore-intro h1{font-size:23px}.explore-intro p{display:none}.explore-intro>.primary{display:none}
+ .budget-welcome{padding:8px 12px;font-size:14px}.budget-welcome .text-button{font-size:14px}
+ .filters{padding:12px}.filter-row{gap:8px;flex-direction:column;align-items:stretch}.filter-row .segmented{flex:1;flex-wrap:nowrap}.segmented button{font-size:14px;padding:8px;flex:1}
+ .explore-tools{display:none}.price-browser-heading{display:none}.price-bands{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.price-bands button{padding:6px 2px;font-size:14px;white-space:normal;line-height:1.4}.price-bands button:first-child{grid-column:auto}.price-bands button span{display:none}
+ .price-band-help{display:none}.results-info{margin:8px 0;gap:4px;flex-direction:row;align-items:center;flex-wrap:wrap}.results-info>.text-button{margin-left:auto;font-size:14px}.filter-summary{font-size:14px}.price-browser{padding:10px}.price-bands{scrollbar-width:none}.price-bands::-webkit-scrollbar{display:none}
+ .apartment-grid{grid-template-columns:1fr}.card-main{padding-top:8px}.card-top{padding-bottom:0}
+ #finance-dialog{width:100%;max-width:100%;height:100dvh;max-height:100dvh;margin:0;border-radius:0}#finance-dialog .finance-panel{padding:18px}
+ #modal{width:100%;max-width:100%;max-height:100dvh;height:100dvh;border-radius:0;margin:0;padding:20px}.modal-head{position:sticky;top:-20px;background:#fff;z-index:2;padding-top:8px}
+ .planner .planner-inputs{grid-template-columns:1fr}.finance-panel .two-fields{grid-template-columns:1fr}
+}
+@media print {
+ body {background:white;font-size:12px}body:has(dialog[open]){overflow:visible}
+ body>*:not(#modal){display:none!important}#modal{display:block;position:static;width:100%;max-width:none;height:auto;max-height:none;overflow:visible;border:0;box-shadow:none}
+ #modal::backdrop{display:none}.modal-head,dialog button,.detail-actions{display:none!important}.table-scroll{overflow:visible}table{min-width:0!important;font-size:12px}tr{break-inside:avoid}details{display:block}
+}

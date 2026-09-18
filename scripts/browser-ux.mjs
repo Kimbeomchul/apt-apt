@@ -1,0 +1,85 @@
+import {spawn} from 'node:child_process';
+import {mkdir,readFile,writeFile,stat} from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+const root=process.cwd();
+const siteUrl=process.argv[2]||'http://127.0.0.1:4173/';
+const profile=path.join(process.env.BROWSER_CACHE||path.join(root,'.cache'),'browser-'+Date.now());
+await mkdir(profile,{recursive:true});await mkdir('artifacts',{recursive:true});
+const executable=process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const child=spawn(executable,['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--remote-debugging-port=0','--user-data-dir='+profile,'about:blank'],{windowsHide:true,stdio:'ignore'});
+let launchError;child.on('error',e=>launchError=e);
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+let ws;
+try{
+  let port;
+  for(let i=0;i<100;i++){
+    if(launchError)throw launchError;
+    try{port=(await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0];break;}catch{await delay(100);}
+  }
+  if(!port)throw Error('Chrome failed to start');
+  const pages=await(await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+  ws=new WebSocket(pages.find(p=>p.type==='page').webSocketDebuggerUrl);
+  await new Promise((resolve,reject)=>{ws.addEventListener('open',resolve,{once:true});ws.addEventListener('error',reject,{once:true});});
+  let seq=0;const pending=new Map(),errors=[];
+  ws.addEventListener('message',e=>{const m=JSON.parse(e.data);if(m.id){const p=pending.get(m.id);if(p){pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result);}}if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails.text);});
+  const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++seq;const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP timeout: '+method));},15000);pending.set(id,{resolve:v=>{clearTimeout(timer);resolve(v);},reject:e=>{clearTimeout(timer);reject(e);}});ws.send(JSON.stringify({id,method,params}));});
+  const run=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.text);return r.result.value;};
+  await send('Runtime.enable');await send('Page.enable');
+  await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
+  await send('Page.navigate',{url:siteUrl});
+  let ready=false;for(let i=0;i<100;i++){if(await run("document.querySelectorAll('.apartment-card').length===24")){ready=true;break;}await delay(100);}assert.ok(ready,'24 cards loaded');
+  assert.ok(await run("document.querySelector('#result-count').textContent.includes('4,860')"));
+  const first=await run("document.querySelector('[data-detail]').dataset.detail");
+  await run("document.querySelector('[data-page=\"2\"]').click()");assert.notEqual(await run("document.querySelector('[data-detail]').dataset.detail"),first);
+  await run("document.querySelector('[data-page=\"1\"]').click();document.querySelector('#pagination button:last-child').dataset.page='203';document.querySelector('#pagination button:last-child').click()");
+  assert.equal(await run("document.querySelectorAll('.apartment-card').length"),12);
+  assert.ok(await run("document.querySelector('.prices').textContent.includes('미확인')"));
+  await run("document.querySelector('[data-action=clear-filters]').click();document.querySelector('[data-region=서울]').click();document.querySelector('#district').value='서울|강남구';document.querySelector('#district').dispatchEvent(new Event('change'));document.querySelector('#price-quality').value='sufficient';document.querySelector('#price-quality').dispatchEvent(new Event('change'))");
+  assert.ok(await run("Array.from(document.querySelectorAll('.area-name')).every(e=>e.textContent.includes('강남구'))"));
+  await run("document.querySelector('[data-detail]').click()");
+  let historyReady=false;for(let i=0;i<100;i++){if(await run("document.querySelectorAll('.history-table tbody tr').length===3")){historyReady=true;break;}await delay(100);}assert.ok(historyReady);
+  await run("document.querySelector('#close-modal').click();document.querySelector('[data-action=share-search]').click()");
+  const sharedUrl=await run("document.querySelector('#share-url').value");assert.ok(sharedUrl.includes('district=')&&sharedUrl.includes('quality=sufficient')&&!sharedUrl.includes('income='));
+  await send('Page.navigate',{url:sharedUrl});await delay(1500);assert.equal(await run("document.querySelector('#district').value"),'서울|강남구');
+  await run("history.replaceState(null,'',location.pathname);document.querySelector('[data-action=clear-filters]').click();scrollTo(0,0)");
+  assert.equal(await run("document.querySelector('#finance-dialog').open"),false);
+  assert.ok(await run("document.querySelector('#budget-summary').textContent.includes('자금 조건 설정')"));
+  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+  assert.equal(await run('document.documentElement.scrollWidth<=innerWidth'),true);
+  const firstY=await run("document.querySelector('.apartment-card').getBoundingClientRect().top");console.log('First mobile card starts at',firstY);assert.ok(firstY<700,'first card visible above dock');
+  const shot=await send('Page.captureScreenshot',{format:'png'});await writeFile('artifacts/ux-mobile.png',Buffer.from(shot.data,'base64'));
+  const open=()=>run("document.querySelector('[data-action=finance]').click()");
+  const set=(name,value)=>run(`document.querySelector('[name="${name}"]').value=${JSON.stringify(value)};document.querySelector('[name="${name}"]').dispatchEvent(new Event('change',{bubbles:true}))`);
+  const apply=()=>run("document.querySelector('#finance-form').requestSubmit()");
+  await open();await set('income','12000');assert.ok(await run("document.querySelector('#budget-summary').textContent.includes('자금 조건 설정')"));
+  await run("document.querySelector('#close-finance').click()");assert.equal(await run("document.querySelector('[name=income]').value"),'7000');
+  await delay(150);await open();await set('cash','40000');await run('history.back()');await delay(150);assert.equal(await run("document.querySelector('#finance-dialog').open"),false,'browser back dismisses finance');assert.equal(await run("document.querySelector('[name=cash]').value"),'30000','back cancels draft');
+  await open();await set('income','');await apply();assert.equal(await run("document.querySelector('#finance-dialog').open"),true,'invalid draft stays open');await send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await delay(150);await send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await delay(150);assert.equal(await run("document.querySelector('#finance-dialog').open"),false,'Escape cancels after native validation popup');
+  await open();await set('creditStatus','active');await apply();assert.equal(await run("document.querySelector('#finance-dialog').open"),false);
+  await run("document.querySelector('#affordable').click()");assert.ok(await run("document.querySelector('#budget-filter-notice').textContent.includes('적용 보류')"));assert.equal(await run("document.querySelectorAll('.apartment-card').length"),24);
+  await open();await set('creditStatus','repaid');await apply();assert.equal(await run("document.querySelector('#budget-filter-notice').hidden"),true);
+  await open();await run("document.querySelector('[data-household=couple]').click()");await set('spouseincome','5000');await set('spousecash','20000');await set('spousetakeHome','350');await run("document.querySelector('[name=giftSelfenabled]').click()");await set('giftSelfamount','10000');
+  assert.ok(await run("document.querySelector('[data-gift-result=giftSelf]').textContent.includes('485만원')"));
+  await run("document.querySelectorAll('#finance-dialog details').forEach(d=>d.open=true)");
+  for(const width of [360,390,768,1440]){await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<600});assert.ok(await run("document.querySelector('#finance-dialog').scrollWidth<=document.querySelector('#finance-dialog').clientWidth"),'expanded finance fits '+width);}
+  await run("document.querySelector('#remember-finance').checked=true");await apply();
+  await run("document.querySelector('#affordable').click();document.querySelector('[data-region=서울]').click();document.querySelector('[data-price-band=\"6to8\"]').click();document.querySelector('[data-compare]').click()");
+  await send('Page.reload');await delay(1500);
+  assert.equal(await run("document.querySelector('[data-price-band=\"6to8\"]').getAttribute('aria-pressed')"),'true');assert.equal(await run("document.querySelector('#compare-count').textContent"),'1');assert.ok(await run("document.querySelector('#budget-summary').textContent.includes('부부 합산')"));
+  await run("document.querySelector('[data-detail]').click()");assert.ok(await run("document.querySelector('.planner-output').textContent.includes('계약금')"));
+  await run('history.back()');await delay(150);assert.equal(await run("document.querySelector('#modal').open"),false,'browser back returns to list');await run("document.querySelector('[data-detail]').click()");
+  const originalScenario=await run("document.querySelector('#scenario-output').textContent");await run("document.querySelector('#scenario-rate').value='3';document.querySelector('#scenario-rate').dispatchEvent(new Event('change'))");assert.notEqual(await run("document.querySelector('#scenario-output').textContent"),originalScenario,'sensitivity updates monthly cash flow');
+  await run("document.querySelector('.planner').open=true;document.querySelector('#plan-cash').value=0;document.querySelector('#plan-cash').dispatchEvent(new Event('input',{bubbles:true}))");assert.ok(await run("document.querySelector('.planner-output').textContent.includes('부족')"));
+  await run("document.querySelector('#plan-middle').value=101;document.querySelector('#plan-middle').dispatchEvent(new Event('input',{bubbles:true}))");assert.ok(await run("document.querySelector('.planner-output').textContent.includes('비율을 확인')"));
+  await run("document.querySelector('#close-modal').click();document.querySelector('[data-action=comparison]').click()");assert.equal(await run("document.querySelectorAll('.comparison-table thead th').length"),2);
+  const pdf=await send('Page.printToPDF',{printBackground:true});await writeFile('artifacts/ux-comparison.pdf',Buffer.from(pdf.data,'base64'));
+  await run("document.querySelector('#close-modal').click();document.querySelector('[data-action=clear-filters]').click();document.querySelector('#search').value='없는단지테스트';document.querySelector('#search').dispatchEvent(new Event('input'))");assert.ok(await run("document.querySelector('.empty-state').textContent.includes('현재 조건')"));
+  await run("document.querySelector('[data-action=clear-filters]').click();document.querySelector('[data-action=privacy]').click();document.querySelector('[data-action=clear-profile]').click()");assert.equal(await run("localStorage.getItem('jip-profile')"),null);await run("document.querySelector('#close-modal').click()");
+  await run("document.querySelector('[data-favorite]').click();document.querySelector('#favorites-only').click()");assert.equal(await run("document.querySelectorAll('.apartment-card').length"),1);await run("document.querySelector('#favorites-only').click()");
+  await run("Array.from(document.querySelectorAll('[data-compare]')).slice(0,4).map(b=>b.dataset.compare).forEach(id=>{const b=document.querySelector('[data-compare=\"'+id+'\"]');if(b.getAttribute('aria-pressed')!=='true')b.click()})");assert.equal(await run("document.querySelector('#compare-count').textContent"),'3','comparison capped at three');
+  for(const width of [320,390,768,1440]){await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<600});assert.ok(await run('document.documentElement.scrollWidth<=innerWidth'),'page fits '+width);await run("document.querySelector('[data-detail]').click()");assert.ok(await run("document.querySelector('#modal').scrollWidth<=document.querySelector('#modal').clientWidth"),'detail fits '+width);await run("document.querySelector('#close-modal').click()");}
+  await run('scrollTo(0,0)');const desktop=await send('Page.captureScreenshot',{format:'png'});await writeFile('artifacts/ux-desktop.png',Buffer.from(desktop.data,'base64'));
+  await run("document.body.style.zoom='2'");await send('Emulation.setDeviceMetricsOverride',{width:768,height:1000,deviceScaleFactor:1,mobile:false});assert.ok(await run('document.documentElement.scrollWidth<=innerWidth'),'200 percent zoom reflows');await run("document.body.style.zoom='1'");
+  assert.deepEqual(errors,[],'no browser exceptions');console.log('UX browser checks passed: draft/cancel/apply, gifts, credit, persistence, timeline, PDF, responsive. '+siteUrl);await send('Browser.close').catch(()=>{});
+}finally{if(ws)ws.close();child.kill();}
