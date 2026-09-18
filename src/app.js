@@ -258,6 +258,7 @@ document.addEventListener('click',event=>{
   if(b.dataset.region){state.district='all';state.region=b.dataset.region;setPressed('data-region',state.region);renderList();}
   if(b.dataset.area){state.area=b.dataset.area;setPressed('data-area',state.area);renderList();}
   if(b.dataset.priceBand){state.priceBand=b.dataset.priceBand;renderList();$(`[data-price-band="${state.priceBand}"]`).focus({preventScroll:true});}
+  if(b.dataset.cardInsight){const panel=b.nextElementSibling;b.setAttribute('aria-expanded',String(b.getAttribute('aria-expanded')!=='true'));panel?.classList.toggle('open');return;}
   if(b.dataset.section){const section=$('#modal .'+b.dataset.section);section?.scrollIntoView({block:'start',behavior:'smooth'});}
   if(b.dataset.detail)detail(b.dataset.detail);
   if(b.dataset.favorite){const id=b.dataset.favorite;state.favorites.has(id)?state.favorites.delete(id):state.favorites.add(id);saveFavorites();renderList();}
@@ -377,6 +378,12 @@ const softMotionObserver=new MutationObserver(records=>{
       node.classList.add('soft-enter');
       node.style.setProperty('--motion-delay',`${Math.min(index,8)*35}ms`);
       node.addEventListener('animationend',()=>node.classList.remove('soft-enter'),{once:true});
+      if(node.matches('.apartment-card')&&!node.querySelector('.card-insight-toggle')){
+        const actions=node.querySelector('.card-actions'),price=node.querySelector('.price-cell strong')?.textContent||'가격 확인 필요',status=node.querySelector('.affordability span')?.textContent||'추가 확인 필요',trust=node.querySelector('.trust-badge')?.textContent||'자료 확인 필요';
+        const toggle=document.createElement('button');toggle.type='button';toggle.className='card-insight-toggle';toggle.dataset.cardInsight='true';toggle.setAttribute('aria-expanded','false');toggle.innerHTML='<b>판단 근거 보기</b><span aria-hidden="true">＋</span>';
+        const panel=document.createElement('div');panel.className='card-insight';panel.innerHTML=`<div><dl><dt>현재 상태</dt><dd>${status}</dd><dt>참고 가격</dt><dd>${price}</dd><dt>자료 신뢰도</dt><dd>${trust}</dd></dl></div>`;
+        actions?.insertAdjacentElement('beforebegin',panel);actions?.insertAdjacentElement('beforebegin',toggle);
+      }
     });
   }
 });
