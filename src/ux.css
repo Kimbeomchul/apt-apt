@@ -92,6 +92,7 @@ body:has(dialog[open]) {overflow:hidden}
 }
 @media(prefers-reduced-motion:reduce){.soft-enter{animation:none!important}.budget-summary,.filters,.apartment-card,.budget-overview strong{transition:none!important}}
 .prices + .affordability{margin-top:18px}.affordability{min-height:58px;line-height:1.55;border:1px solid rgba(8,127,133,.08);box-shadow:0 2px 8px rgba(24,50,71,.04)}.affordability span{display:block}.affordability span+span{margin-top:3px;opacity:.82}
+.card-insight-actions{display:flex;gap:8px;margin-top:12px}.card-insight-actions button{flex:1;min-height:38px;border-radius:9px;padding:7px 8px;background:#fff;border:1px solid #c9dddd;color:#087177;font-size:12px;font-weight:700}.card-insight-actions button:last-child{background:#087f85;color:#fff;border-color:#087f85}.card-insight-actions button:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(8,127,133,.14)}
 @media print {
  body {background:white;font-size:12px}body:has(dialog[open]){overflow:visible}
  body>*:not(#modal){display:none!important}#modal{display:block;position:static;width:100%;max-width:none;height:auto;max-height:none;overflow:visible;border:0;box-shadow:none}

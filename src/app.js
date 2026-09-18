@@ -265,6 +265,7 @@ document.addEventListener('click',event=>{
   if(b.dataset.page){state.page=Number(b.dataset.page);renderList();$('#result-count').scrollIntoView({block:'start'});$('#pagination button:not(:disabled)')?.focus({preventScroll:true});}
   if(b.dataset.compare){const id=b.dataset.compare;if(state.compared.includes(id)){state.compared=state.compared.filter(x=>x!==id);toast('비교함에서 제외했어요.');}else if(state.compared.length>=3){toast('최대 3개 단지를 비교할 수 있어요.');}else{state.compared.push(id);toast('비교함에 담았어요. 상단 비교함에서 확인하세요.');}renderList();}
   if(b.dataset.removeCompare){state.compared=state.compared.filter(x=>x!==b.dataset.removeCompare);renderList();comparison();}
+  if(b.dataset.cardReport){contractReport(b.dataset.cardReport);return;}
   if(b.dataset.action==='contract-report'){contractReport($('#modal').dataset.apartment);return;}
   const actions={method,policy,sources,comparison,privacy,finance:openFinance,'save-scenario':saveScenario,'compare-scenarios':compareScenarios,'relax-budget':()=>{state.affordable=false;$('#affordable').checked=false;renderList();},'print-report':()=>window.print(),'clear-profile':()=>{localStorage.removeItem('jip-profile');$('#remember-finance').checked=false;toast('이 기기의 자금 저장을 삭제했어요.');},'share-search':shareSearch,'clear-filters':clearFilters,'clear-saved':()=>{state.favorites.clear();saveFavorites();renderList();toast('관심 단지를 삭제했어요.');}};
   if(b.dataset.action&&actions[b.dataset.action]){if(!state.data||!state.policy){toast('자료를 불러온 후 다시 시도해주세요.');return;}actions[b.dataset.action]();}
@@ -379,9 +380,9 @@ const softMotionObserver=new MutationObserver(records=>{
       node.style.setProperty('--motion-delay',`${Math.min(index,8)*35}ms`);
       node.addEventListener('animationend',()=>node.classList.remove('soft-enter'),{once:true});
       if(node.matches('.apartment-card')&&!node.querySelector('.card-insight-toggle')){
-        const actions=node.querySelector('.card-actions'),price=node.querySelector('.price-cell strong')?.textContent||'가격 확인 필요',status=node.querySelector('.affordability span')?.textContent||'추가 확인 필요',trust=node.querySelector('.trust-badge')?.textContent||'자료 확인 필요';
+        const actions=node.querySelector('.card-actions'),cardId=node.querySelector('[data-detail]')?.dataset.detail,price=node.querySelector('.price-cell strong')?.textContent||'가격 확인 필요',status=node.querySelector('.affordability span')?.textContent||'추가 확인 필요',trust=node.querySelector('.trust-badge')?.textContent||'자료 확인 필요';
         const toggle=document.createElement('button');toggle.type='button';toggle.className='card-insight-toggle';toggle.dataset.cardInsight='true';toggle.setAttribute('aria-expanded','false');toggle.innerHTML='<b>판단 근거 보기</b><span aria-hidden="true">＋</span>';
-        const panel=document.createElement('div');panel.className='card-insight';panel.innerHTML=`<div><dl><dt>현재 상태</dt><dd>${status}</dd><dt>참고 가격</dt><dd>${price}</dd><dt>자료 신뢰도</dt><dd>${trust}</dd></dl></div>`;
+        const panel=document.createElement('div');panel.className='card-insight';panel.innerHTML=`<div><dl><dt>현재 상태</dt><dd>${status}</dd><dt>참고 가격</dt><dd>${price}</dd><dt>자료 신뢰도</dt><dd>${trust}</dd></dl><div class="card-insight-actions"><button type="button" data-detail="${cardId||''}">상세 판단</button><button type="button" data-card-report="${cardId||''}">계약 전 점검</button></div></div>`;
         actions?.insertAdjacentElement('beforebegin',toggle);actions?.insertAdjacentElement('beforebegin',panel);
       }
     });
