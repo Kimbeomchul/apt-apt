@@ -66,6 +66,10 @@ body:has(dialog[open]) {overflow:hidden}
 .report-print {margin:16px 0}
 .detail-navigation{display:flex;gap:8px;flex-wrap:wrap;padding:8px 0;margin-bottom:12px}.detail-navigation button{border:1px solid #cadbdc;border-radius:24px;padding:6px 16px;color:#075e65;background:#f0f8f7}
 .detail-prices,.detail-calculator,.detail-grid{scroll-margin-top:70px}
+.contract-report{list-style:none;padding:0;margin:16px 0;display:grid;gap:10px}
+.report-item{display:flex;align-items:flex-start;gap:10px;padding:14px;border:1px solid #d8e4e5;border-left:5px solid #b6c8ca;border-radius:12px;background:#fbfdfd}
+.report-item label{display:flex;gap:10px;flex:1;align-items:flex-start;cursor:pointer}.report-item input{width:20px;height:20px;flex:0 0 auto;margin-top:2px;accent-color:#087177}.report-item label span{display:grid;gap:4px}.report-item small{font-size:14px;line-height:1.55;color:#4d6268}.report-item.confirmed{border-left-color:#2b9b71;background:#f3fbf7}.report-item.review{border-left-color:#d89436;background:#fffaf2}.report-item.missing{border-left-color:#c75c61;background:#fff5f5}.report-meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:14px;color:#567077;margin:4px 0 12px}.report-questions{padding:16px;border-radius:12px;background:#f1f7f7}.report-questions h3{margin-top:0}.report-questions ul{margin:0;padding-left:20px}.report-source{margin:14px 0 0}.report-source a{font-weight:700}
+@media(max-width:600px){.report-item{padding:12px}.report-item small{font-size:13px}.report-meta{font-size:13px}}
 @media(max-width:1000px){.apartment-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){
  .header{min-height:90px;padding-top:10px;padding-bottom:8px}.brand small{display:none}
