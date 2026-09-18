@@ -368,3 +368,16 @@ function renderGapPlan(e){
 let printDetails=[];
 window.addEventListener('beforeprint',()=>{printDetails=[...$('#modal').querySelectorAll('details')].map(el=>[el,el.open]);for(const [el] of printDetails)el.open=true;});
 window.addEventListener('afterprint',()=>{for(const [el,open] of printDetails)el.open=open;printDetails=[];});
+
+// Keep list and budget updates calm but alive: the content changes in place without a jarring redraw.
+const softMotionObserver=new MutationObserver(records=>{
+  for(const record of records){
+    if(!record.addedNodes.length)continue;
+    [...record.addedNodes].filter(node=>node.nodeType===1).forEach((node,index)=>{
+      node.classList.add('soft-enter');
+      node.style.setProperty('--motion-delay',`${Math.min(index,8)*35}ms`);
+      node.addEventListener('animationend',()=>node.classList.remove('soft-enter'),{once:true});
+    });
+  }
+});
+['apartments','budget-summary','price-bands'].forEach(id=>{const target=document.getElementById(id);if(target)softMotionObserver.observe(target,{childList:true});});
