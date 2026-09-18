@@ -279,6 +279,7 @@ document.addEventListener('click',event=>{
   const b=event.target.closest('button');if(!b)return;
   if(b.dataset.clearFilter){const key=b.dataset.clearFilter;const defaults={region:'all',district:'all',quality:'all',priceBand:'all',search:'',affordable:false,favoritesOnly:false};state[key]=defaults[key];if(key==='region')state.district='all';$('#search').value=state.search;$('#price-quality').value=state.quality;$('#affordable').checked=state.affordable;$('#favorites-only').checked=state.favoritesOnly;setPressed('data-region',state.region);renderList();}
   if(b.dataset.clearRecent){state.recent=[];try{localStorage.removeItem('jip-recent');}catch{}renderRecentViewed();toast('최근 본 단지 기록을 지웠어요.');return;}
+  if(b.dataset.clearSearch){$('#search').value='';state.search='';syncSearchClear();renderList();$('#search').focus();return;}
   if(b.dataset.relax)relaxFilter(b.dataset.relax);
   if(b.dataset.loadScenario)loadScenario(Number(b.dataset.loadScenario));
   if(b.dataset.deleteScenario){deleteScenario(Number(b.dataset.deleteScenario));}
@@ -302,7 +303,11 @@ document.addEventListener('click',event=>{
 });
 $('#district').addEventListener('change',e=>{state.district=e.target.value;renderList();});
 $('#price-quality').addEventListener('change',e=>{state.quality=e.target.value;renderList();});
-$('#search').addEventListener('input',e=>{state.search=e.target.value;renderList();});
+$('#search').addEventListener('input',e=>{state.search=e.target.value;renderList();syncSearchClear();});
+const searchClear=document.createElement('button');searchClear.type='button';searchClear.className='search-clear';searchClear.dataset.clearSearch='true';searchClear.setAttribute('aria-label','검색어 지우기');searchClear.textContent='×';$('#search')?.parentElement?.append(searchClear);
+function syncSearchClear(){if(searchClear)searchClear.hidden=!$('#search').value;}
+syncSearchClear();
+$('#search').addEventListener('keydown',e=>{if(e.key!=='Enter')return;const first=$('#apartments [data-detail]');if(first){e.preventDefault();first.click();}});
 $('#sort').addEventListener('change',e=>{state.sort=e.target.value;renderList();});
 $('#affordable').addEventListener('change',e=>{state.affordable=e.target.checked;renderList();});
 $('#favorites-only').addEventListener('change',e=>{state.favoritesOnly=e.target.checked;renderList();});
