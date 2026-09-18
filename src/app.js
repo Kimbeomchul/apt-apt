@@ -115,6 +115,13 @@ async function loadPriceHistory(a,target,area){
     target.innerHTML=`<h3>전용 ${area}㎡급 · 기간별 거래 비교</h3><p>동일 기준일(${escape(data.asOf)})까지 최근 3·6·12개월을 비교합니다. 기간이 서로 겹치며 월별 가격 추이를 뜻하지 않습니다.</p><div class="period-chart" role="img" aria-label="기간별 중위가격 비교. 정확한 값과 거래 수는 아래 표에 표시됩니다.">${['3','6','12'].map(months=>{const w=windows[months];return `<div><span>${months}개월</span><div class="period-track"><span style="width:${(w.median_manwon||0)/maximum*100}%"></span></div><strong>${w.count?money(w.median_manwon):'거래 없음'}</strong></div>`;}).join('')}</div><div class="table-scroll"><table class="history-table"><caption>대표가격으로 사용한 기간은 ‘카드 기준’으로 표시합니다.</caption><thead><tr><th>기간</th><th>중위가격 / 거래 수</th><th>거래 범위</th><th>직전 같은 길이 기간 대비</th></tr></thead><tbody>${['3','6','12'].map(months=>{const w=windows[months],quality=windowComparison(w);return `<tr><th>${months}개월${a.prices[area]?.periodMonths===Number(months)?'<br>카드 기준':''}<small>${escape(w.from_exclusive)} 이후</small></th><td>${w.count?money(w.median_manwon):'미확인'}<br>${w.count}건 · ${quality.label}</td><td>${w.count?money(w.min_manwon)+' ~ '+money(w.max_manwon):'—'}</td><td>${quality.change===null?'비교 표본 부족':(quality.change>0?'+':'')+quality.change+'%'}<br><small>직전 ${w.previous_count}건</small></td></tr>`;}).join('')}</tbody></table></div><p class="field-help">변화율은 현재·직전 구간 모두 3건 이상일 때만 표시합니다. 같은 면적급 안에서도 거래 면적·동·층 구성과 신고 지연에 따라 값이 달라질 수 있습니다.</p>`;
   }catch{historyCache.delete(region);if(target.isConnected){target.innerHTML='<p>기간별 자료를 불러오지 못했습니다. 기존 참고가격은 그대로 확인할 수 있어요.</p><button class="outline-button">다시 불러오기</button>';target.querySelector('button').addEventListener('click',()=>{target.textContent='기간별 자료를 불러오는 중…';loadPriceHistory(a,target,area);});}}
 }
+function renderCompareTray(){
+  let tray=document.getElementById('compare-tray');
+  if(!state.compared.length){tray?.remove();return;}
+  if(!tray){tray=document.createElement('aside');tray.id='compare-tray';tray.className='compare-tray';tray.setAttribute('aria-live','polite');document.body.append(tray);}
+  const homes=state.compared.map(id=>getApartment(id)).filter(Boolean);
+  tray.innerHTML=`<div class="compare-tray-copy"><strong>비교함 ${homes.length}/3</strong><span>${homes.map(a=>escape(a.name)).join(' · ')}</span></div><div class="compare-tray-actions">${homes.map(a=>`<button type="button" class="compare-remove" data-remove-tray="${a.id}" aria-label="${escape(a.name)} 비교에서 제외">×</button>`).join('')}<button type="button" class="compare-open" data-action="comparison">비교하기 <span aria-hidden="true">→</span></button></div>`;
+}
 function renderList(){
   if(!state.data)return;
   renderDistricts();
@@ -152,6 +159,7 @@ function renderList(){
   ];
   $('#apartments').innerHTML=list.length?list.slice(start,start+PAGE_SIZE).map(card).join(''):`<div class="empty-state"><strong>조건에 맞는 단지가 없어요.</strong><br>현재 조건: ${escape($('#filter-summary').textContent)}<br>${alternativeHtml({baseCount:list.length,relax})}<br>${state.affordable?'<button class="outline-button" data-action="relax-budget">예산 필터만 해제</button>':''}<button class="outline-button" data-action="clear-filters">검색 조건 초기화</button></div>`;
   $('#compare-count').textContent=state.compared.length;
+  renderCompareTray();
   persistExplore();
 }
 function renderFilterSummary(){
@@ -265,6 +273,7 @@ document.addEventListener('click',event=>{
   if(b.dataset.page){state.page=Number(b.dataset.page);renderList();$('#result-count').scrollIntoView({block:'start'});$('#pagination button:not(:disabled)')?.focus({preventScroll:true});}
   if(b.dataset.compare){const id=b.dataset.compare;if(state.compared.includes(id)){state.compared=state.compared.filter(x=>x!==id);toast('비교함에서 제외했어요.');}else if(state.compared.length>=3){toast('최대 3개 단지를 비교할 수 있어요.');}else{state.compared.push(id);toast('비교함에 담았어요. 상단 비교함에서 확인하세요.');}renderList();}
   if(b.dataset.removeCompare){state.compared=state.compared.filter(x=>x!==b.dataset.removeCompare);renderList();comparison();}
+  if(b.dataset.removeTray){state.compared=state.compared.filter(x=>x!==b.dataset.removeTray);renderList();}
   if(b.dataset.cardReport){contractReport(b.dataset.cardReport);return;}
   if(b.dataset.action==='contract-report'){contractReport($('#modal').dataset.apartment);return;}
   const actions={method,policy,sources,comparison,privacy,finance:openFinance,'save-scenario':saveScenario,'compare-scenarios':compareScenarios,'relax-budget':()=>{state.affordable=false;$('#affordable').checked=false;renderList();},'print-report':()=>window.print(),'clear-profile':()=>{localStorage.removeItem('jip-profile');$('#remember-finance').checked=false;toast('이 기기의 자금 저장을 삭제했어요.');},'share-search':shareSearch,'clear-filters':clearFilters,'clear-saved':()=>{state.favorites.clear();saveFavorites();renderList();toast('관심 단지를 삭제했어요.');}};
