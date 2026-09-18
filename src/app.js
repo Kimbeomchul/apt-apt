@@ -16,7 +16,9 @@ setupHousehold(form);
 for(const input of form.querySelectorAll('input[type=number]'))input.step='any';
 const PAGE_SIZE=24;
 let applied=false,appliedFields=null,returnToDetail=null;
-const state={district:'all',quality:'all',page:1,listKey:'',priceBand:'all',data:null,policy:null,region:'all',area:'84',search:'',sort:'price',affordable:false,favoritesOnly:false,compared:[],favorites:new Set(),profile:null};
+const state={district:'all',quality:'all',page:1,listKey:'',priceBand:'all',data:null,policy:null,region:'all',area:'84',search:'',sort:'match',affordable:false,favoritesOnly:false,compared:[],favorites:new Set(),profile:null};
+let scenarios=[];
+try{const savedScenarios=JSON.parse(localStorage.getItem('jip-scenarios')||'[]');if(Array.isArray(savedScenarios))scenarios=savedScenarios.slice(0,5);}catch{}
 try{const favorites=JSON.parse(localStorage.getItem('jip-favorites')||'[]');if(Array.isArray(favorites))state.favorites=new Set(favorites.filter(v=>typeof v==='string'));}catch{}
 function readProfile(){
   const f=new FormData(form),p={};
@@ -61,7 +63,23 @@ function priceCell(a,area){const p=a.prices[area];return `<div class="price-cell
 function card(a){
   const p=a.prices[state.area],e=applied?result(a):null,tier=priceTier(p?.amount);
   const saved=state.favorites.has(a.id),compared=state.compared.includes(a.id);
-  return `<article class="apartment-card"><div class="card-top"><span class="area-name">${escape(a.region+' · '+a.district+' '+a.dong)}</span><button class="favorite ${saved?'saved':''}" data-favorite="${escape(a.id)}" aria-label="${escape(a.name)} 관심 ${saved?'해제':'저장'}" aria-pressed="${saved}">${saved?'♥':'♡'}</button></div><div class="card-main"><button class="card-title" data-detail="${escape(a.id)}">${escape(a.name)}</button><div class="card-meta"><span>${a.households.toLocaleString()}세대</span><span>·</span><span>${a.year}년 준공</span><span>·</span><span>${a.region==='서울'?'서울':'경기'}</span></div><div class="card-tags">${a.tags.slice(0,2).map(t=>`<span class="tag">${escape(t)}</span>`).join('')}</div><div class="prices">${priceCell(a,state.area)}</div><div class="affordability ${e?.status||''}"><span>${!applied?'내 예산 설정 후 비교':e?(e.scenario.conditional?'조건부 · ':'')+statusLabels[e.status]:'가격 확인 필요'}</span><span>${!applied?'':!e?'평형 선택 확인':!e.supported?'상세 조건 확인':e.shortage>=.01?money(e.shortage,true)+' 부족':'월 '+monthly(e.monthly)}</span></div></div><div class="card-actions"><button data-compare="${escape(a.id)}" aria-pressed="${compared}">${compared?'✓ 비교함에 담김':'＋ 비교하기'}</button>${link(naver(a),naverLabel(a),'naver-link')}</div></article>`;
+  const reason=!applied?'자금 설정 후 가능 여부 확인':!e?'가격 자료 확인 필요':e.status==='safe'?'생활비·비상금을 지키는 범위':e.status==='stretch'?'최대 예산 안이지만 여유 확인':e.status==='short'?`${money(e.shortage,true)} 추가 필요`:statusLabels[e.status];
+  return `<article class="apartment-card"><div class="card-top"><span class="area-name">${escape(a.region+' · '+a.district+' '+a.dong)}</span><button class="favorite ${saved?'saved':''}" data-favorite="${escape(a.id)}" aria-label="${escape(a.name)} 관심 ${saved?'해제':'저장'}" aria-pressed="${saved}">${saved?'♥':'♡'}</button></div><div class="card-main"><button class="card-title" data-detail="${escape(a.id)}">${escape(a.name)}</button><div class="card-meta"><span>${a.households.toLocaleString()}세대</span><span>·</span><span>${a.year}년 준공</span><span>·</span><span>${a.region==='서울'?'서울':'경기'}</span></div><div class="card-tags">${a.tags.slice(0,2).map(t=>`<span class="tag">${escape(t)}</span>`).join('')}</div><div class="prices">${priceCell(a,state.area)}</div><div class="affordability ${e?.status||''}"><span>${!applied?'내 예산 설정 후 비교':e?(e.scenario.conditional?'조건부 · ':'')+statusLabels[e.status]:'가격 확인 필요'}</span><span>${reason}</span></div></div><div class="card-actions"><button data-compare="${escape(a.id)}" aria-pressed="${compared}">${compared?'✓ 비교함에 담김':'＋ 비교하기'}</button>${link(naver(a),naverLabel(a),'naver-link')}</div></article>`;
+}
+function recommendationScore(a){
+  const p=a.prices[state.area],e=applied&&p?result(a):null;
+  if(!p)return -100000000;
+  if(!e)return -(p.amount||0);
+  const status={safe:4000000,stretch:3000000,burden:1500000,short:500000,review:0}[e.status]||0;
+  const quality=Math.min(300000,p.sampleCount||0)*100;
+  const burden=Math.max(0,100000-e.monthly)*5;
+  return status+quality+burden-(p.amount||0)*0.02;
+}
+function alternativeHtml({baseCount,relax=[]}){
+  if(baseCount)return '';
+  const items=relax.filter(x=>x.count>0).slice(0,4);
+  if(!items.length)return '<p class="empty-hint">현재 범위에서 확인 가능한 후보가 없습니다. 지역이나 면적을 넓혀보세요.</p>';
+  return `<div class="alternatives"><strong>조건을 하나만 완화하면 찾을 수 있어요</strong><div>${items.map(x=>`<button class="outline-button" data-relax="${x.key}">${escape(x.label)} <b>${x.count.toLocaleString()}개</b></button>`).join('')}</div></div>`;
 }
 function renderDistricts(){
   const options=districtOptions(state.data.apartments,state.region);
@@ -98,16 +116,18 @@ function renderList(){
   if(key!==state.listKey){state.page=1;state.listKey=key;}
   let list=state.data.apartments.filter(a=>a.households>=400&&(state.region==='all'||a.region===state.region)&&(!query||(a.name+a.address+(a.aliases||[]).join('')).toLowerCase().replace(/\s/g,'').includes(query))&&(!state.favoritesOnly||state.favorites.has(a.id)));
   list=list.filter(a=>(state.district==='all'||districtKey(a)===state.district)&&matchesQuality(a.prices[state.area],state.quality));
+  const beforeBudget=list.slice();
   const scenario=scenarioFor(state.profile),suspended=state.affordable&&(!applied||!scenario.supported);
   const filterNotice=$('#budget-filter-notice');
   filterNotice.hidden=!suspended;
   filterNotice.textContent=suspended?'예산 필터 적용 보류 · '+(!applied?'먼저 내 자금을 설정해주세요.':scenario.reasons.join(' '))+' 예산 조건으로 단지를 제외하지 않고, 지역·평형·가격대 등 나머지 검색 조건의 목록을 표시합니다. 상태를 확인하면 예산 필터가 다시 적용됩니다.':'';
   if(state.affordable&&!suspended)list=list.filter(a=>['safe','stretch'].includes(result(a)?.status));
+  const beforeBand=list.slice();
   const counts=priceBands.map(b=>list.filter(a=>matchesPriceBand(a.prices[state.area]?.amount,b.id)).length);
   $('#price-bands').innerHTML=priceBands.map((b,i)=>`<button type="button" data-price-band="${b.id}" aria-pressed="${state.priceBand===b.id}" class="${state.priceBand===b.id?'selected':''}">${b.label}<span>${counts[i].toLocaleString()}개</span></button>`).join('');
   $('#price-band-help').textContent=`전용 ${state.area}㎡급 참고가격 기준 · 6·8·11억은 다음 구간, 15억은 마지막 구간에 포함됩니다. 가격 미확인·15억 초과는 전체에서 볼 수 있어요.`;
   list=list.filter(a=>matchesPriceBand(a.prices[state.area]?.amount,state.priceBand));
-  list.sort((a,b)=>{if(state.sort==='households')return b.households-a.households;if(state.sort==='newest')return b.year-a.year;const av=a.prices[state.area]?.amount,bv=b.prices[state.area]?.amount;if(!av)return bv?1:0;if(!bv)return -1;return state.sort==='price-desc'?bv-av:av-bv;});
+  list.sort((a,b)=>{if(state.sort==='match')return recommendationScore(b)-recommendationScore(a);if(state.sort==='households')return b.households-a.households;if(state.sort==='newest')return b.year-a.year;const av=a.prices[state.area]?.amount,bv=b.prices[state.area]?.amount;if(!av)return bv?1:0;if(!bv)return -1;return state.sort==='price-desc'?bv-av:av-bv;});
   const known=list.filter(a=>a.prices[state.area]).length;
   $('#coverage-summary').textContent=`검색 결과 중 가격 확인 ${known.toLocaleString()}개 · 미확인 ${(list.length-known).toLocaleString()}개 · ${state.data.updatedAt} 기준`;
   $('#result-count').innerHTML=`<strong>${list.length.toLocaleString()}개</strong> 단지 · 전체 ${state.data.apartments.length.toLocaleString()}개 중`;
@@ -116,7 +136,14 @@ function renderList(){
   const start=(state.page-1)*PAGE_SIZE;
   $('#pagination').innerHTML=list.length?`<button class="outline-button" data-page="${state.page-1}" ${state.page===1?'disabled':''}>이전</button><span aria-live="polite">${state.page} / ${pages} 페이지 · ${start+1}–${Math.min(start+PAGE_SIZE,list.length)}</span><button class="outline-button" data-page="${state.page+1}" ${state.page===pages?'disabled':''}>다음</button>`:'';
   renderFilterSummary();
-  $('#apartments').innerHTML=list.length?list.slice(start,start+PAGE_SIZE).map(card).join(''):`<div class="empty-state"><strong>조건에 맞는 단지가 없어요.</strong><br>현재 조건: ${escape($('#filter-summary').textContent)}<br>지역·가격대 또는 관심 조건을 완화해보세요.<br>${state.affordable?'<button class="outline-button" data-action="relax-budget">예산 필터만 해제</button>':''}<button class="outline-button" data-action="clear-filters">검색 조건 초기화</button></div>`;
+  const relax=[
+    {key:'budget',label:'예산 필터 해제',count:beforeBudget.filter(a=>matchesPriceBand(a.prices[state.area]?.amount,state.priceBand)).length},
+    {key:'band',label:'가격대 전체 보기',count:beforeBand.length},
+    {key:'district',label:'시·군·구 전체 보기',count:state.data.apartments.filter(a=>a.households>=400&&(state.region==='all'||a.region===state.region)&&(!query||(a.name+a.address).toLowerCase().replace(/\s/g,'').includes(query))&&matchesQuality(a.prices[state.area],state.quality)).length},
+    {key:'region',label:'서울·경기 전체 보기',count:state.data.apartments.filter(a=>a.households>=400&&(!query||(a.name+a.address).toLowerCase().replace(/\s/g,'').includes(query))&&matchesQuality(a.prices[state.area],state.quality)).length},
+    {key:'favorites',label:'관심 단지 해제',count:state.favoritesOnly?beforeBudget.length:0}
+  ];
+  $('#apartments').innerHTML=list.length?list.slice(start,start+PAGE_SIZE).map(card).join(''):`<div class="empty-state"><strong>조건에 맞는 단지가 없어요.</strong><br>현재 조건: ${escape($('#filter-summary').textContent)}<br>${alternativeHtml({baseCount:list.length,relax})}<br>${state.affordable?'<button class="outline-button" data-action="relax-budget">예산 필터만 해제</button>':''}<button class="outline-button" data-action="clear-filters">검색 조건 초기화</button></div>`;
   $('#compare-count').textContent=state.compared.length;
   persistExplore();
 }
@@ -142,7 +169,7 @@ function detail(id){
   $('#modal').dataset.apartment=id;
   openModal(a.name,`<nav class="detail-navigation" aria-label="단지 상세 항목"><button data-section="detail-prices">가격·거래</button><button data-section="detail-calculator">내 자금</button><button data-section="detail-grid">단지 정보</button></nav><p class="detail-meta">${escape(a.address)} · ${a.households.toLocaleString()}세대 · ${a.year}년 준공</p><div class="detail-prices">${priceDetail(a,'59')}${priceDetail(a,'84')}</div><p class="notice">참고가격은 현재 매물 가격이 아닙니다. ${escape(state.data.priceMethod)}</p><section id="price-history" class="price-history" aria-live="polite"><p>기간별 거래 자료를 불러오는 중…</p></section><div class="detail-grid"><section><h3>확인된 단지 정보</h3><ul>${a.facts.map(t=>`<li>${escape(t)}</li>`).join('')}</ul>${link(a.factSource||a.source,'단지 정보 출처')}</section><section><h3>현장에서 살펴볼 점</h3><ul>${a.checks.map(t=>`<li>${escape(t)}</li>`).join('')}</ul></section></div><h3>급지 · 커뮤니티</h3><div class="score-empty">${p?`선택 평형의 <strong>가격 ${priceTier(p.amount)}군</strong>입니다. `:''}가격군은 금액 구간 분류이며 입지 급지가 아닙니다. 입지·단지 품질 점수는 교통·학교·시설 자료 검증 후 제공됩니다.<br>커뮤니티: ${escape(a.facilities)}</div><section class="detail-calculator"><h3 style="margin-top:0">이 집, 내 조건으로 계산하면?</h3><p style="margin-bottom:12px">실제 보신 매물 가격으로 바꿔 계산할 수 있어요.</p><div class="two-fields"><label class="field">예상 매매가 (만원)<span class="input-wrap"><input id="detail-price" type="number" min="1" max="10000000" step="100" value="${p?.amount||''}" placeholder="가격 입력"><span>만원</span></span></label><label class="field">지역 규제 조건<select id="detail-regulation"><option value="true">규제지역 · LTV 40% 가정</option><option value="false">비규제지역 · LTV 70% 가정</option></select></label></div><p class="field-help" style="margin:0 0 14px">${a.regulated===null?'지역 지정 상태 미검증: 보수적으로 규제지역을 가정합니다.':'초기 조사 기준 규제지역을 가정합니다. 현재 지정·경과조건은 은행 확인이 필요합니다.'} 담보평가액=매매가 가정.</p><div id="detail-result" aria-live="polite"></div></section><div class="detail-actions">${link(naver(a),naverLabel(a),'primary')}${link('https://rt.molit.go.kr/','국토부에서 재확인','outline-button')}<button class="outline-button" data-compare="${a.id}">비교함에 담기</button></div>`,'APARTMENT REPORT');
   loadPriceHistory(a,$('#price-history'),state.area);
-  const update=()=>{const value=Number($('#detail-price').value);const container=$('#detail-result');if(!$('#detail-price').value||value<=0||!Number.isFinite(value)||value>10000000){container.innerHTML='<p>1~10,000,000만원 범위로 예상 매매가를 입력해주세요.</p>';return;}const e=evaluate(value,state.profile,{regulated:$('#detail-regulation').value==='true'});container.innerHTML=applied?calculationHtml(e):'<p>내 자금을 설정하면 부족한 현금과 월 상환액을 확인할 수 있어요.</p><button class="primary" data-action="finance">내 예산 알아보기</button>';if(applied){renderSensitivity(e);renderPlanner(e);}};
+  const update=()=>{const value=Number($('#detail-price').value);const container=$('#detail-result');if(!$('#detail-price').value||value<=0||!Number.isFinite(value)||value>10000000){container.innerHTML='<p>1~10,000,000만원 범위로 예상 매매가를 입력해주세요.</p>';return;}const e=evaluate(value,state.profile,{regulated:$('#detail-regulation').value==='true'});container.innerHTML=applied?calculationHtml(e):'<p>내 자금을 설정하면 부족한 현금과 월 상환액을 확인할 수 있어요.</p><button class="primary" data-action="finance">내 예산 알아보기</button>';if(applied){renderSensitivity(e);renderGapPlan(e);renderPlanner(e);}};
   $('#detail-price').addEventListener('input',update);$('#detail-regulation').addEventListener('change',update);update();
 }
 function calculationHtml(e){
@@ -164,11 +191,40 @@ function policy(){const p=state.policy;openModal('대출 계산, 이렇게 가�
 function sources(){openModal('가격과 데이터의 출처',`<p>${escape(state.data.coverage)}</p><p class="notice">공식 단지 마스터 전체와 주소·명칭으로 연결한 국토부 CSV 거래를 제공합니다. 실시간 매물이나 모든 현존 단지의 전수 검증 결과는 아닙니다.</p><h3>대략적인 가격은 어떻게 표시하나요?</h3><p>${escape(state.data.priceMethod)} 카드 금액은 0.1억원 단위로 반올림합니다. 상세에서 집계 기간·건수·출처를 확인할 수 있습니다.</p><h3>네이버 연결</h3><p>단지 식별자가 확인된 곳은 직접 연결합니다. 나머지는 단지명과 주소를 포함한 네이버 검색으로 연결하므로 검색 결과에서 네이버 부동산을 선택해주세요. 로그인이나 서비스 상태에 따라 외부 화면은 달라질 수 있습니다.</p><h3>정식 데이터 연동</h3><p>공식 ID를 기준으로 단지를 수록했습니다. 해제·직거래·중복 의심·단지 식별 충돌 거래는 가격 집계에서 제외합니다. 최근 신고 지연과 정정은 이후 갱신 시 반영됩니다.</p>${link('https://www.data.go.kr/data/15126468/openapi.do','국토부 아파트 실거래가 API')}${link('https://www.data.go.kr/data/15106861/fileData.do','한국부동산원 단지 식별정보')}<h3>자료별 링크</h3><p>각 단지 상세에서 단지 정보와 가격 출처를 확인할 수 있습니다.</p><p>데이터 조사일: ${escape(state.data.updatedAt)}. 취소·정정과 신고 지연에 따라 값이 바뀔 수 있습니다.</p>`,'DATA & SOURCES');}
 function privacy(){openModal('금융정보는 내 브라우저 안에',`<p>연봉·자산·부채 입력은 현재 브라우저에서 계산하고 서버로 전송하거나 URL에 포함하지 않습니다. 기본적으로 새로고침하면 초기화됩니다. ‘이 기기에 자금 조건 저장’을 선택하면 이 브라우저에 보관합니다. 아래에서 삭제할 수 있습니다.</p><p>최근 검색 조건과 관심·비교 단지 식별자도 이 브라우저에 저장합니다. 외부 링크를 열면 해당 서비스의 정책이 적용됩니다. 화면 글꼴은 Google Fonts에서 불러오며 금융정보를 보내지 않습니다.</p><button class="outline-button" data-action="clear-profile">저장한 자금 조건 삭제</button><button class="outline-button" style="margin-top:20px" data-action="clear-saved">저장한 관심 단지 삭제</button>`,'PRIVACY');}
 function setPressed(attr,value){document.querySelectorAll(`[${attr}]`).forEach(b=>{const selected=b.getAttribute(attr)===value;b.classList.toggle('selected',selected);b.setAttribute('aria-pressed',String(selected));});}
-function clearFilters(){state.district='all';state.quality='all';$('#price-quality').value='all';state.priceBand='all';state.region='all';state.area='84';state.search='';state.sort='price';state.affordable=false;state.favoritesOnly=false;$('#search').value='';$('#sort').value='price';$('#affordable').checked=false;$('#favorites-only').checked=false;setPressed('data-region','all');setPressed('data-area','84');renderList();}
+function clearFilters(){state.district='all';state.quality='all';$('#price-quality').value='all';state.priceBand='all';state.region='all';state.area='84';state.search='';state.sort='match';state.affordable=false;state.favoritesOnly=false;$('#search').value='';$('#sort').value='match';$('#affordable').checked=false;$('#favorites-only').checked=false;setPressed('data-region','all');setPressed('data-area','84');renderList();}
 function saveFavorites(){try{localStorage.setItem('jip-favorites',JSON.stringify([...state.favorites]));}catch{toast('이 브라우저에서는 관심 단지를 저장할 수 없어요.');}}
+function persistScenarios(){try{localStorage.setItem('jip-scenarios',JSON.stringify(scenarios.slice(0,5)));}catch{}}
+function renderScenarioList(){
+  const target=$('#scenario-list');if(!target)return;
+  if(!scenarios.length){target.innerHTML='<p class="field-help">혼자·부부·증여 포함 조건을 저장해 비교할 수 있어요.</p>';return;}
+  target.innerHTML='<div class="scenario-list-head"><p>저장한 조건</p><button type="button" class="text-button" data-action="compare-scenarios">나란히 비교</button></div>'+scenarios.map((s,i)=>`<div class="scenario-row"><button type="button" data-load-scenario="${i}"><strong>${escape(s.name)}</strong><small>${escape(s.summary)}</small></button><button type="button" data-delete-scenario="${i}" aria-label="${escape(s.name)} 삭제">×</button></div>`).join('');
+}
+function saveScenario(){
+  const fields=snapshot(),mode=form.elements.householdMode.value==='couple'?'부부 합산':'나 혼자',gift=form.elements.giftSelfenabled.checked||form.elements.giftSpouseenabled.checked?' · 증여 포함':'';
+  scenarios=[{name:`${mode}${gift}`,summary:`연봉 ${money(Number(form.elements.income.value)||0)} · 현금 ${money(Number(form.elements.cash.value)||0)}`,fields,createdAt:new Date().toISOString()},...scenarios.filter(s=>s.name!==`${mode}${gift}`)].slice(0,5);persistScenarios();renderScenarioList();toast('현재 자금 조건을 저장했어요.');
+}
+function loadScenario(index){const scenario=scenarios[index];if(!scenario)return;restore(scenario.fields);draftChanged();toast(`${scenario.name} 조건을 불러왔어요.`);}
+function deleteScenario(index){scenarios.splice(index,1);persistScenarios();renderScenarioList();}
+function compareScenarios(){
+  if(!scenarios.length){toast('먼저 저장한 조건이 필요해요.');return;}
+  const current=snapshot(),rows=[];
+  for(const scenario of scenarios){restore(scenario.fields);const p=readProfile();const stable=budgetFor(p,true),max=budgetFor(p,false);rows.push(`<tr><th>${escape(scenario.name)}</th><td>${stable===null?'추가 확인':money(stable,true)}</td><td>${max===null?'추가 확인':money(max,true)}</td><td>${p.householdMode==='couple'?'부부 합산':'나 혼자'}</td></tr>`);}
+  restore(current);draftChanged();openModal('저장한 자금 조건 비교',`<p>같은 정책 가정으로 저장된 조건을 비교합니다. 실제 대출 승인 결과가 아닙니다.</p><div class="table-scroll"><table class="scenario-table"><thead><tr><th>조건</th><th>안정 예산</th><th>최대 예산</th><th>기준</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`,'SCENARIO COMPARE');
+}
+function relaxFilter(key){
+  if(key==='budget'){state.affordable=false;$('#affordable').checked=false;}
+  if(key==='band')state.priceBand='all';
+  if(key==='district')state.district='all';
+  if(key==='region'){state.region='all';state.district='all';}
+  if(key==='favorites'){state.favoritesOnly=false;$('#favorites-only').checked=false;}
+  setPressed('data-region',state.region);renderList();
+}
 document.addEventListener('click',event=>{
   const b=event.target.closest('button');if(!b)return;
   if(b.dataset.clearFilter){const key=b.dataset.clearFilter;const defaults={region:'all',district:'all',quality:'all',priceBand:'all',search:'',affordable:false,favoritesOnly:false};state[key]=defaults[key];if(key==='region')state.district='all';$('#search').value=state.search;$('#price-quality').value=state.quality;$('#affordable').checked=state.affordable;$('#favorites-only').checked=state.favoritesOnly;setPressed('data-region',state.region);renderList();}
+  if(b.dataset.relax)relaxFilter(b.dataset.relax);
+  if(b.dataset.loadScenario)loadScenario(Number(b.dataset.loadScenario));
+  if(b.dataset.deleteScenario){deleteScenario(Number(b.dataset.deleteScenario));}
   if(b.dataset.region){state.district='all';state.region=b.dataset.region;setPressed('data-region',state.region);renderList();}
   if(b.dataset.area){state.area=b.dataset.area;setPressed('data-area',state.area);renderList();}
   if(b.dataset.priceBand){state.priceBand=b.dataset.priceBand;renderList();$(`[data-price-band="${state.priceBand}"]`).focus({preventScroll:true});}
@@ -178,7 +234,7 @@ document.addEventListener('click',event=>{
   if(b.dataset.page){state.page=Number(b.dataset.page);renderList();$('#result-count').scrollIntoView({block:'start'});$('#pagination button:not(:disabled)')?.focus({preventScroll:true});}
   if(b.dataset.compare){const id=b.dataset.compare;if(state.compared.includes(id)){state.compared=state.compared.filter(x=>x!==id);toast('비교함에서 제외했어요.');}else if(state.compared.length>=3){toast('최대 3개 단지를 비교할 수 있어요.');}else{state.compared.push(id);toast('비교함에 담았어요. 상단 비교함에서 확인하세요.');}renderList();}
   if(b.dataset.removeCompare){state.compared=state.compared.filter(x=>x!==b.dataset.removeCompare);renderList();comparison();}
-  const actions={method,policy,sources,comparison,privacy,finance:openFinance,'relax-budget':()=>{state.affordable=false;$('#affordable').checked=false;renderList();},'print-report':()=>window.print(),'clear-profile':()=>{localStorage.removeItem('jip-profile');$('#remember-finance').checked=false;toast('이 기기의 자금 저장을 삭제했어요.');},'share-search':shareSearch,'clear-filters':clearFilters,'clear-saved':()=>{state.favorites.clear();saveFavorites();renderList();toast('관심 단지를 삭제했어요.');}};
+  const actions={method,policy,sources,comparison,privacy,finance:openFinance,'save-scenario':saveScenario,'compare-scenarios':compareScenarios,'relax-budget':()=>{state.affordable=false;$('#affordable').checked=false;renderList();},'print-report':()=>window.print(),'clear-profile':()=>{localStorage.removeItem('jip-profile');$('#remember-finance').checked=false;toast('이 기기의 자금 저장을 삭제했어요.');},'share-search':shareSearch,'clear-filters':clearFilters,'clear-saved':()=>{state.favorites.clear();saveFavorites();renderList();toast('관심 단지를 삭제했어요.');}};
   if(b.dataset.action&&actions[b.dataset.action]){if(!state.data||!state.policy){toast('자료를 불러온 후 다시 시도해주세요.');return;}actions[b.dataset.action]();}
 });
 $('#district').addEventListener('change',e=>{state.district=e.target.value;renderList();});
@@ -206,7 +262,7 @@ function draftChanged(){
 function openFinance(){
   if($('#finance-dialog').open)return;
   if($('#modal').open){returnToDetail=$('#detail-price')?$('#modal').dataset.apartment:null;$('#modal').close();}
-  appliedFields=snapshot();draftChanged();trackOverlay();$('#finance-dialog').showModal();$('#finance-dialog').scrollTop=0;
+  appliedFields=snapshot();draftChanged();renderScenarioList();trackOverlay();$('#finance-dialog').showModal();$('#finance-dialog').scrollTop=0;
 }
 function closeFinance(){restore(appliedFields);$('#finance-dialog').close();if(returnToDetail){const id=returnToDetail;returnToDetail=null;detail(id);}}
 $('#close-finance').addEventListener('click',closeFinance);
@@ -265,6 +321,18 @@ function renderSensitivity(e){
   $('#detail-result').insertAdjacentHTML('beforeend',`<details class="sensitivity"><summary>금리·소득이 바뀌면 얼마나 남을까요?</summary><p>위에서 계산한 대출 원금을 고정한 가계 현금흐름 비교입니다. 대출 승인 한도를 다시 심사하는 계산은 아닙니다.</p><label class="field">금리 상승 <select id="scenario-rate"><option value="0">변화 없음</option><option value="1">+1%p</option><option value="2" selected>+2%p</option><option value="3">+3%p</option></select></label><label class="field">월 실수령 변화 <select id="scenario-income"><option value="0">변화 없음</option><option value="-10">−10%</option><option value="-20" selected>−20%</option><option value="-30">−30%</option></select></label><div id="scenario-output" aria-live="polite"></div></details>`);
   const update=()=>{const monthlyLoan=payment(e.loan,state.profile.rate+Number($('#scenario-rate').value),state.profile.years);const income=state.profile.takeHome*(1+Number($('#scenario-income').value)/100);const left=income-state.profile.living-state.profile.debtMonthly-monthlyLoan;$('#scenario-output').innerHTML=`<p>월 주담대 상환액 <strong>${monthly(monthlyLoan)}</strong><br>생활비·기존 대출 납부 후 <strong>${left<0?'부족 '+monthly(-left):'잔여 '+monthly(left)}</strong></p>`;};
   $('#scenario-rate').addEventListener('change',update);$('#scenario-income').addEventListener('change',update);update();
+}
+function renderGapPlan(e){
+  if(!e?.supported||e.shortage<0.01)return;
+  const target=$('#detail-result');
+  target.insertAdjacentHTML('beforeend',`<details class="gap-plan"><summary>부족한 ${money(e.shortage,true)}를 줄이는 방법</summary><p>아래 값은 선택한 집의 가격·현금 조건을 바꿔 보는 참고 시뮬레이션입니다. 실제 승인이나 계약 조건을 보장하지 않습니다.</p><div class="gap-controls"><label>추가 현금<input id="gap-cash" type="number" min="0" step="100" value="0"><span>만원</span></label><label>집값 조정<input id="gap-price" type="number" min="0" max="100" step="1" value="0"><span>% 낮춤</span></label></div><div id="gap-output" aria-live="polite"></div></details>`);
+  const update=()=>{
+    const extra=Math.max(0,Number($('#gap-cash').value)||0),cut=Math.min(100,Math.max(0,Number($('#gap-price').value)||0));
+    const nextPrice=e.price*(1-cut/100),next={...state.profile,cash:state.profile.cash+extra};
+    const nextResult=evaluate(nextPrice,next,{regulated:$('#detail-regulation').value==='true'});
+    $('#gap-output').innerHTML=nextResult?.shortage<0.01?`<p class="gap-good">이 조합이면 부족 자금이 없어집니다. 예상 월 상환액은 <strong>${monthly(nextResult.monthly)}</strong>입니다.</p>`:`<p>남은 부족 자금 <strong>${money(nextResult?.shortage??e.shortage,true)}</strong><br>추가 현금 ${money(extra)} · 집값 ${cut}% 조정 후 ${money(nextPrice,true)}</p>`;
+  };
+  $('#gap-cash').addEventListener('input',update);$('#gap-price').addEventListener('input',update);update();
 }
 let printDetails=[];
 window.addEventListener('beforeprint',()=>{printDetails=[...$('#modal').querySelectorAll('details')].map(el=>[el,el.open]);for(const [el] of printDetails)el.open=true;});
