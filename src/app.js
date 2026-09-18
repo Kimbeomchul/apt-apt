@@ -382,7 +382,7 @@ const softMotionObserver=new MutationObserver(records=>{
         const actions=node.querySelector('.card-actions'),price=node.querySelector('.price-cell strong')?.textContent||'가격 확인 필요',status=node.querySelector('.affordability span')?.textContent||'추가 확인 필요',trust=node.querySelector('.trust-badge')?.textContent||'자료 확인 필요';
         const toggle=document.createElement('button');toggle.type='button';toggle.className='card-insight-toggle';toggle.dataset.cardInsight='true';toggle.setAttribute('aria-expanded','false');toggle.innerHTML='<b>판단 근거 보기</b><span aria-hidden="true">＋</span>';
         const panel=document.createElement('div');panel.className='card-insight';panel.innerHTML=`<div><dl><dt>현재 상태</dt><dd>${status}</dd><dt>참고 가격</dt><dd>${price}</dd><dt>자료 신뢰도</dt><dd>${trust}</dd></dl></div>`;
-        actions?.insertAdjacentElement('beforebegin',panel);actions?.insertAdjacentElement('beforebegin',toggle);
+        actions?.insertAdjacentElement('beforebegin',toggle);actions?.insertAdjacentElement('beforebegin',panel);
       }
     });
   }
