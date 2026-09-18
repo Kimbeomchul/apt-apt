@@ -16,10 +16,11 @@ setupHousehold(form);
 for(const input of form.querySelectorAll('input[type=number]'))input.step='any';
 const PAGE_SIZE=24;
 let applied=false,appliedFields=null,returnToDetail=null;
-const state={district:'all',quality:'all',page:1,listKey:'',priceBand:'all',data:null,policy:null,region:'all',area:'84',search:'',sort:'match',affordable:false,favoritesOnly:false,compared:[],favorites:new Set(),profile:null};
+const state={district:'all',quality:'all',page:1,listKey:'',priceBand:'all',data:null,policy:null,region:'all',area:'84',search:'',sort:'match',affordable:false,favoritesOnly:false,compared:[],favorites:new Set(),profile:null,recent:[]};
 let scenarios=[];
 try{const savedScenarios=JSON.parse(localStorage.getItem('jip-scenarios')||'[]');if(Array.isArray(savedScenarios))scenarios=savedScenarios.slice(0,5);}catch{}
 try{const favorites=JSON.parse(localStorage.getItem('jip-favorites')||'[]');if(Array.isArray(favorites))state.favorites=new Set(favorites.filter(v=>typeof v==='string'));}catch{}
+try{const recent=JSON.parse(localStorage.getItem('jip-recent')||'[]');if(Array.isArray(recent))state.recent=recent.filter(v=>typeof v==='string').slice(0,5);}catch{}
 function readProfile(){
   const f=new FormData(form),p={};
   for(const [k,v] of f)p[k]=['homeStatus','purchaseHistory','creditStatus','spousecreditStatus','householdMode'].includes(k)||k.endsWith('relation')?v:v==='on'?true:v.trim()===''?NaN:Number(v);
@@ -123,6 +124,15 @@ function renderCompareTray(){
   const homes=state.compared.map(id=>getApartment(id)).filter(Boolean);
   tray.innerHTML=`<div class="compare-tray-copy"><strong>비교함 ${homes.length}/3</strong><span>${homes.map(a=>escape(a.name)).join(' · ')}</span></div><div class="compare-tray-actions">${homes.map(a=>`<button type="button" class="compare-remove" data-remove-tray="${a.id}" aria-label="${escape(a.name)} 비교에서 제외">×</button>`).join('')}<button type="button" class="compare-open" data-action="comparison">비교하기 <span aria-hidden="true">→</span></button></div>`;
 }
+function rememberRecent(id){state.recent=[id,...state.recent.filter(item=>item!==id)].slice(0,5);try{localStorage.setItem('jip-recent',JSON.stringify(state.recent));}catch{};renderRecentViewed();}
+function renderRecentViewed(){
+  let row=document.getElementById('recent-viewed');
+  if(!row){row=document.createElement('section');row.id='recent-viewed';row.className='recent-viewed';const target=document.getElementById('apartments');target?.parentElement?.insertBefore(row,target);}
+  const homes=state.recent.map(getApartment).filter(Boolean);
+  row.hidden=!homes.length;
+  if(!homes.length)return;
+  row.innerHTML=`<div class="recent-viewed-head"><strong>최근 본 단지</strong><button type="button" class="text-button" data-clear-recent>기록 지우기</button></div><div class="recent-viewed-list">${homes.map(a=>{const p=a.prices[state.area];return `<button type="button" class="recent-viewed-item" data-detail="${a.id}"><span>${escape(a.name)}</span><small>${p?money(p.amount,true):'가격 확인 필요'} · ${escape(a.district)}</small></button>`;}).join('')}</div>`;
+}
 function renderList(){
   if(!state.data)return;
   renderDistricts();
@@ -151,6 +161,7 @@ function renderList(){
   const start=(state.page-1)*PAGE_SIZE;
   $('#pagination').innerHTML=list.length?`<button class="outline-button" data-page="${state.page-1}" ${state.page===1?'disabled':''}>이전</button><span aria-live="polite">${state.page} / ${pages} 페이지 · ${start+1}–${Math.min(start+PAGE_SIZE,list.length)}</span><button class="outline-button" data-page="${state.page+1}" ${state.page===pages?'disabled':''}>다음</button>`:'';
   renderFilterSummary();
+  renderRecentViewed();
   const relax=[
     {key:'budget',label:'예산 필터 해제',count:beforeBudget.filter(a=>matchesPriceBand(a.prices[state.area]?.amount,state.priceBand)).length},
     {key:'band',label:'가격대 전체 보기',count:beforeBand.length},
@@ -199,6 +210,7 @@ function contractReport(id){
 }
 function detail(id){
   const a=getApartment(id);if(!a)return;
+  rememberRecent(id);
   const p=a.prices[state.area];
   $('#modal').dataset.apartment=id;
   openModal(a.name,`<nav class="detail-navigation" aria-label="단지 상세 항목"><button data-section="detail-prices">가격·거래</button><button data-section="detail-calculator">내 자금</button><button data-section="detail-grid">단지 정보</button></nav><p class="detail-meta">${escape(a.address)} · ${a.households.toLocaleString()}세대 · ${a.year}년 준공</p><div class="detail-prices">${priceDetail(a,'59')}${priceDetail(a,'84')}</div><p class="notice">참고가격은 현재 매물 가격이 아닙니다. ${escape(state.data.priceMethod)}</p><section id="price-history" class="price-history" aria-live="polite"><p>기간별 거래 자료를 불러오는 중…</p></section><div class="detail-grid"><section><h3>확인된 단지 정보</h3><ul>${a.facts.map(t=>`<li>${escape(t)}</li>`).join('')}</ul>${link(a.factSource||a.source,'단지 정보 출처')}</section><section><h3>현장에서 살펴볼 점</h3><ul>${a.checks.map(t=>`<li>${escape(t)}</li>`).join('')}</ul></section></div><h3>급지 · 커뮤니티</h3><div class="score-empty">${p?`선택 평형의 <strong>가격 ${priceTier(p.amount)}군</strong>입니다. `:''}가격군은 금액 구간 분류이며 입지 급지가 아닙니다. 입지·단지 품질 점수는 교통·학교·시설 자료 검증 후 제공됩니다.<br>커뮤니티: ${escape(a.facilities)}</div><section class="detail-calculator"><h3 style="margin-top:0">이 집, 내 조건으로 계산하면?</h3><p style="margin-bottom:12px">실제 보신 매물 가격으로 바꿔 계산할 수 있어요.</p><div class="two-fields"><label class="field">예상 매매가 (만원)<span class="input-wrap"><input id="detail-price" type="number" min="1" max="10000000" step="100" value="${p?.amount||''}" placeholder="가격 입력"><span>만원</span></span></label><label class="field">지역 규제 조건<select id="detail-regulation"><option value="true">규제지역 · LTV 40% 가정</option><option value="false">비규제지역 · LTV 70% 가정</option></select></label></div><p class="field-help" style="margin:0 0 14px">${a.regulated===null?'지역 지정 상태 미검증: 보수적으로 규제지역을 가정합니다.':'초기 조사 기준 규제지역을 가정합니다. 현재 지정·경과조건은 은행 확인이 필요합니다.'} 담보평가액=매매가 가정.</p><div id="detail-result" aria-live="polite"></div></section><div class="detail-actions">${link(naver(a),naverLabel(a),'primary')}${link('https://rt.molit.go.kr/','국토부에서 재확인','outline-button')}<button class="outline-button" data-action="contract-report">계약 전 점검</button><button class="outline-button" data-compare="${a.id}">비교함에 담기</button></div>`,'APARTMENT REPORT');
@@ -261,6 +273,7 @@ function relaxFilter(key){
 document.addEventListener('click',event=>{
   const b=event.target.closest('button');if(!b)return;
   if(b.dataset.clearFilter){const key=b.dataset.clearFilter;const defaults={region:'all',district:'all',quality:'all',priceBand:'all',search:'',affordable:false,favoritesOnly:false};state[key]=defaults[key];if(key==='region')state.district='all';$('#search').value=state.search;$('#price-quality').value=state.quality;$('#affordable').checked=state.affordable;$('#favorites-only').checked=state.favoritesOnly;setPressed('data-region',state.region);renderList();}
+  if(b.dataset.clearRecent){state.recent=[];try{localStorage.removeItem('jip-recent');}catch{}renderRecentViewed();toast('최근 본 단지 기록을 지웠어요.');return;}
   if(b.dataset.relax)relaxFilter(b.dataset.relax);
   if(b.dataset.loadScenario)loadScenario(Number(b.dataset.loadScenario));
   if(b.dataset.deleteScenario){deleteScenario(Number(b.dataset.deleteScenario));}
