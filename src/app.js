@@ -385,6 +385,12 @@ const softMotionObserver=new MutationObserver(records=>{
         const panel=document.createElement('div');panel.className='card-insight';panel.innerHTML=`<div><dl><dt>현재 상태</dt><dd>${status}</dd><dt>참고 가격</dt><dd>${price}</dd><dt>자료 신뢰도</dt><dd>${trust}</dd></dl><div class="card-insight-actions"><button type="button" data-detail="${cardId||''}">상세 판단</button><button type="button" data-card-report="${cardId||''}">계약 전 점검</button></div></div>`;
         actions?.insertAdjacentElement('beforebegin',toggle);actions?.insertAdjacentElement('beforebegin',panel);
       }
+      if(node.matches('.budget-overview')&&!document.querySelector('#budget-summary .next-action')){
+        const first=document.querySelector('#apartments [data-detail]'), compared=state.compared.length;
+        const action=!applied?{label:'자금 조건 설정',text:'예산을 설정하면 내 조건에 맞는 단지만 추려볼 수 있어요.',action:'finance'}:compared?{label:'비교 결과 보기',text:`${compared}개 단지를 골랐어요. 차이를 한눈에 확인해보세요.`,action:'comparison'}:first?{label:'첫 추천 확인',text:'현재 조건에서 가장 먼저 살펴볼 단지를 골랐어요.',detail:first.dataset.detail}:{label:'조건 다시 보기',text:'필터를 조금 완화하면 후보를 더 찾을 수 있어요.',action:'clear-filters'};
+        const next=document.createElement('div');next.className='next-action';next.innerHTML=`<div><strong>다음으로 할 일</strong><span>${action.text}</span></div>${action.detail?`<button type="button" data-detail="${action.detail}">${action.label}<span aria-hidden="true">→</span></button>`:`<button type="button" data-action="${action.action}">${action.label}<span aria-hidden="true">→</span></button>`}`;
+        node.parentElement?.append(next);
+      }
     });
   }
 });
